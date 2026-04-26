@@ -1,0 +1,96 @@
+/** Demo catalog for /universities — replace with API data later. */
+export const REGIONS = [
+  { id: 'all', label: 'All regions' },
+  { id: 'tashkent', label: 'Tashkent' },
+  { id: 'samarkand', label: 'Samarkand' },
+  { id: 'bukhara', label: 'Bukhara' },
+  { id: 'fergana', label: 'Fergana Valley' },
+  { id: 'other', label: 'Other' },
+]
+
+export const UNIVERSITIES_CATALOG = [
+  {
+    id: 'tuit',
+    name: 'Tashkent University of Information Technologies',
+    region: 'tashkent',
+    shortDetail: 'Flagship tech campus focused on IT, telecom, and applied engineering.',
+    image: 'https://picsum.photos/seed/tuit-uni/800/520',
+  },
+  {
+    id: 'nuu',
+    name: 'National University of Uzbekistan',
+    region: 'tashkent',
+    shortDetail: 'Broad research university with strong sciences and humanities.',
+    image: 'https://picsum.photos/seed/nuu-uni/800/520',
+  },
+  {
+    id: 'wiut',
+    name: 'Westminster International University in Tashkent',
+    region: 'tashkent',
+    shortDetail: 'UK-partnered degrees in business, law, and international relations.',
+    image: 'https://picsum.photos/seed/wiut-uni/800/520',
+  },
+  {
+    id: 'tsul',
+    name: 'Tashkent State University of Law',
+    region: 'tashkent',
+    shortDetail: 'Central hub for legal studies, policy, and public administration.',
+    image: 'https://picsum.photos/seed/tsul-uni/800/520',
+  },
+  {
+    id: 'medic',
+    name: 'Tashkent Medical Academy',
+    region: 'tashkent',
+    shortDetail: 'Clinical pathways, biomedical labs, and teaching hospitals network.',
+    image: 'https://picsum.photos/seed/medic-uni/800/520',
+  },
+  {
+    id: 'sam-poly',
+    name: 'Samarkand State Technical Institute',
+    region: 'samarkand',
+    shortDetail: 'Engineering and architecture programs rooted in the Silk Road city.',
+    image: 'https://picsum.photos/seed/samtech/800/520',
+  },
+  {
+    id: 'sam-uni',
+    name: 'Samarkand State University',
+    region: 'samarkand',
+    shortDetail: 'Classical university with education, languages, and social sciences.',
+    image: 'https://picsum.photos/seed/samuni/800/520',
+  },
+  {
+    id: 'bukh-inno',
+    name: 'Bukhara Engineering–Technology Institute',
+    region: 'bukhara',
+    shortDetail: 'Energy systems, mechanics, and digital manufacturing tracks.',
+    image: 'https://picsum.photos/seed/bukh-inno/800/520',
+  },
+  {
+    id: 'bukh-ped',
+    name: 'Bukhara State Pedagogical Institute',
+    region: 'bukhara',
+    shortDetail: 'Teacher training, psychology, and regional education leadership.',
+    image: 'https://picsum.photos/seed/bukh-ped/800/520',
+  },
+  {
+    id: 'ferg-poly',
+    name: 'Fergana Polytechnic Institute',
+    region: 'fergana',
+    shortDetail: 'Textile tech, automation, and logistics for industrial employers.',
+    image: 'https://picsum.photos/seed/fergpoly/800/520',
+  },
+  {
+    id: 'andijan-med',
+    name: 'Andijan State Medical Institute',
+    region: 'fergana',
+    shortDetail: 'Community medicine, nursing, and public-health outreach programs.',
+    image: 'https://picsum.photos/seed/andmed/800/520',
+  },
+  {
+    id: 'other',
+    name: 'Other institution',
+    region: 'other',
+    shortDetail: 'Placeholder entry for institutions not yet listed in the directory.',
+    image: 'https://picsum.photos/seed/other-uni/800/520',
+  },
+]
