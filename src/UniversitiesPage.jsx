@@ -5,6 +5,7 @@ import { Compass, Search } from 'lucide-react'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
 import { REGIONS, UNIVERSITIES_CATALOG } from './data/universitiesCatalog.js'
+import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 function regionFromSearchParams(searchParams) {
@@ -14,6 +15,7 @@ function regionFromSearchParams(searchParams) {
 }
 
 export default function UniversitiesPage() {
+  const { language } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
   const [query, setQuery] = useState('')
@@ -38,6 +40,32 @@ export default function UniversitiesPage() {
       return matchRegion && matchName
     })
   }, [query, region])
+
+  const regionLabel = (r) => {
+    if (language === 'uz') {
+      const map = {
+        all: 'Barcha hududlar',
+        tashkent: 'Toshkent',
+        samarkand: 'Samarqand',
+        bukhara: 'Buxoro',
+        fergana: "Farg'ona vodiysi",
+        other: 'Boshqa',
+      }
+      return map[r.id] ?? r.label
+    }
+    if (language === 'ru') {
+      const map = {
+        all: 'Все регионы',
+        tashkent: 'Ташкент',
+        samarkand: 'Самарканд',
+        bukhara: 'Бухара',
+        fergana: 'Ферганская долина',
+        other: 'Другие',
+      }
+      return map[r.id] ?? r.label
+    }
+    return r.label
+  }
 
   return (
     <>
@@ -73,7 +101,7 @@ export default function UniversitiesPage() {
             <div className="mb-3 flex items-center gap-2 lg:mb-5">
               <Compass className="h-4 w-4 text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]" aria-hidden />
               <span className="text-[11px] font-bold uppercase tracking-[0.28em] text-[var(--uni-teal)] dark:text-[var(--uni-muted)]">
-                Regions
+                {language === 'uz' ? 'Hududlar' : language === 'ru' ? 'Регионы' : 'Regions'}
               </span>
             </div>
 
@@ -94,14 +122,14 @@ export default function UniversitiesPage() {
                     <span className="font-mono text-[10px] text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]">
                       {String(REGIONS.indexOf(r)).padStart(2, '0')}
                     </span>
-                    <span className="mt-0.5 block whitespace-nowrap">{r.label}</span>
+                    <span className="mt-0.5 block whitespace-nowrap">{regionLabel(r)}</span>
                   </button>
                 )
               })}
             </div>
 
             <nav
-              aria-label="Filter by region"
+              aria-label={language === 'uz' ? "Hudud bo'yicha filter" : language === 'ru' ? 'Фильтр по региону' : 'Filter by region'}
               className="relative hidden border-l-2 border-[var(--uni-line)] pl-1 lg:block"
             >
               {REGIONS.map((r) => {
@@ -129,7 +157,7 @@ export default function UniversitiesPage() {
                     >
                       {String(REGIONS.indexOf(r)).padStart(2, '0')}
                     </span>
-                    <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{r.label}</span>
+                    <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{regionLabel(r)}</span>
                   </button>
                 )
               })}
@@ -142,7 +170,7 @@ export default function UniversitiesPage() {
               aria-hidden
               className="uni-display pointer-events-none absolute -left-1 top-6 select-none text-[clamp(5.5rem,20vw,11rem)] font-bold leading-[0.82] tracking-tight text-slate-900/[0.07] dark:text-white/[0.06] sm:-left-2 sm:top-4 md:text-[clamp(6rem,17vw,10rem)]"
             >
-              Atlas
+              {language === 'uz' ? 'Atlas' : language === 'ru' ? 'Атлас' : 'Atlas'}
             </p>
 
             <motion.header
@@ -152,14 +180,20 @@ export default function UniversitiesPage() {
               className="relative z-[1] max-w-3xl border-l-2 border-[var(--uni-teal)] pl-5 sm:pl-6"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.42em] text-[var(--uni-teal)] dark:text-teal-300">
-                Union directory
+                {language === 'uz' ? 'Union katalogi' : language === 'ru' ? 'Каталог Union' : 'Union directory'}
               </p>
               <h1 className="uni-display mt-2 text-[clamp(2.15rem,5vw,3.35rem)] font-semibold leading-[1.08] tracking-tight text-[var(--uni-ink)]">
-                University <span className="text-[var(--uni-ink)] dark:text-slate-200">atlas</span>
+                {language === 'uz' ? 'Universitet ' : language === 'ru' ? 'Атлас ' : 'University '}
+                <span className="text-[var(--uni-ink)] dark:text-slate-200">
+                  {language === 'uz' ? 'atlasi' : language === 'ru' ? 'университетов' : 'atlas'}
+                </span>
               </h1>
               <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--uni-muted)]">
-                A single surface to wander institutions by region — part map room, part reading room. Curated demo
-                entries; swap in your own API when you ship.
+                {language === 'uz'
+                  ? "Hududlar bo'yicha universitetlarni o'rganish uchun yagona maydon. Demo yozuvlar kiritilgan; ishlab chiqishda o'z API'ingiz bilan almashtiring."
+                  : language === 'ru'
+                    ? 'Единая поверхность для изучения университетов по регионам. Здесь демо-данные; при запуске замените на свой API.'
+                    : 'A single surface to wander institutions by region - part map room, part reading room. Curated demo entries; swap in your own API when you ship.'}
               </p>
             </motion.header>
 
@@ -170,7 +204,9 @@ export default function UniversitiesPage() {
               className="uni-search-glow relative z-[1] mt-10 max-w-xl rounded-xl border border-[var(--uni-line)] bg-white transition-shadow dark:rounded-sm dark:border-2 dark:bg-slate-950/50"
             >
               <label className="relative flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
-                <span className="sr-only">Search universities</span>
+                <span className="sr-only">
+                  {language === 'uz' ? 'Universitetlarni qidirish' : language === 'ru' ? 'Поиск университетов' : 'Search universities'}
+                </span>
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--uni-teal-dim)] text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]">
                   <Search className="h-4 w-4" strokeWidth={2.2} aria-hidden />
                 </span>
@@ -178,7 +214,13 @@ export default function UniversitiesPage() {
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Type a name, discipline, or place…"
+                  placeholder={
+                    language === 'uz'
+                      ? 'Nomi, yo‘nalishi yoki joylashuvini kiriting…'
+                      : language === 'ru'
+                        ? 'Введите название, направление или место…'
+                        : 'Type a name, discipline, or place...'
+                  }
                   className="min-w-0 flex-1 bg-transparent text-[15px] font-medium outline-none placeholder:text-[var(--uni-muted)] placeholder:opacity-75"
                 />
               </label>
@@ -194,7 +236,11 @@ export default function UniversitiesPage() {
                 {String(filtered.length).padStart(2, '0')}
               </span>
               &nbsp;·&nbsp;
-              {filtered.length === 1 ? 'match' : 'matches'} in view
+              {language === 'uz'
+                ? `${filtered.length === 1 ? 'moslik' : 'mosliklar'} ko‘rinmoqda`
+                : language === 'ru'
+                  ? `${filtered.length === 1 ? 'совпадение' : 'совпадений'} в выдаче`
+                  : `${filtered.length === 1 ? 'match' : 'matches'} in view`}
             </motion.p>
 
             <motion.div layout className="mt-10 grid grid-cols-12 gap-5 md:gap-6">
@@ -256,7 +302,7 @@ export default function UniversitiesPage() {
                           transition={{ type: 'spring', stiffness: 280, damping: 22 }}
                         />
                         <span className="absolute bottom-3 left-3 z-[2] max-w-[85%] rounded-sm border border-white/30 bg-[var(--uni-ink)]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm dark:border-white/15 dark:bg-black/70">
-                          {REGIONS.find((x) => x.id === u.region)?.label ?? u.region}
+                          {regionLabel(REGIONS.find((x) => x.id === u.region) ?? { id: u.region, label: u.region })}
                         </span>
                       </div>
                       <div className={`relative flex flex-1 flex-col justify-center p-5 ${isWide ? 'xl:py-8 xl:pl-8 xl:pr-10' : ''}`}>
@@ -270,7 +316,7 @@ export default function UniversitiesPage() {
                           className="mt-5 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]"
                           whileHover={{ x: 4 }}
                         >
-                          Open sheet
+                          {language === 'uz' ? "Sahifani ochish" : language === 'ru' ? 'Открыть лист' : 'Open sheet'}
                           <span aria-hidden className="inline-block transition-transform group-hover:translate-x-0.5">
                             →
                           </span>
@@ -290,8 +336,16 @@ export default function UniversitiesPage() {
                 className="mt-14 border-2 border-dashed border-[var(--uni-line)] bg-white/50 px-6 py-14 text-center dark:bg-slate-950/40"
               >
                 <Compass className="mx-auto h-10 w-10 text-[var(--uni-teal)] opacity-70" aria-hidden />
-                <p className="uni-display mt-4 text-lg text-[var(--uni-muted)]">Nothing on this bearing</p>
-                <p className="mt-2 text-sm text-[var(--uni-muted)]">Widen the region or clear the search field.</p>
+                <p className="uni-display mt-4 text-lg text-[var(--uni-muted)]">
+                  {language === 'uz' ? "Bu yo'nalishda natija yo'q" : language === 'ru' ? 'По этому направлению пусто' : 'Nothing on this bearing'}
+                </p>
+                <p className="mt-2 text-sm text-[var(--uni-muted)]">
+                  {language === 'uz'
+                    ? "Hududni kengaytiring yoki qidiruv maydonini tozalang."
+                    : language === 'ru'
+                      ? 'Расширьте регион или очистите поиск.'
+                      : 'Widen the region or clear the search field.'}
+                </p>
               </motion.div>
             ) : null}
           </div>

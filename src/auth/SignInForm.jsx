@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { verifyDemoCredentials } from './demoUserStore'
+import { useI18n } from '../i18n.jsx'
 import { cardVariants, staggerContainer, staggerItem } from './motion'
 
 const inputClass =
   'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-violet-500/0 transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/30 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
 
 export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail = '' }) {
+  const { t } = useI18n()
   const [email, setEmail] = useState(prefilledEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -14,7 +16,7 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
   const submit = (e) => {
     e.preventDefault()
     setError('')
-    const res = verifyDemoCredentials(email, password)
+    const res = verifyDemoCredentials(email, password, t)
     if (!res.ok) {
       setError(res.error)
       return
@@ -31,9 +33,9 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
       animate="animate"
       exit="exit"
     >
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Sign in</h2>
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t('authSignIn', 'Sign in')}</h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Enter your email and password to continue.
+        {t('authEnterEmailPassword', 'Enter your email and password to continue.')}
       </p>
       <form onSubmit={submit} className="mt-6">
         <motion.div
@@ -44,7 +46,7 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
         >
           <motion.div variants={staggerItem}>
             <label htmlFor="signin-email" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Email
+              {t('authEmail', 'Email')}
             </label>
             <input
               id="signin-email"
@@ -58,7 +60,7 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
           </motion.div>
           <motion.div variants={staggerItem}>
             <label htmlFor="signin-password" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Password
+              {t('authPassword', 'Password')}
             </label>
             <input
               id="signin-password"
@@ -82,14 +84,14 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
           whileTap={{ scale: 0.98 }}
           className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700"
         >
-          Sign in
+          {t('authSignIn', 'Sign in')}
         </motion.button>
         <button
           type="button"
           className="mt-4 w-full text-center text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
           onClick={onForgotPassword}
         >
-          Forgot password?
+          {t('authForgotPassword', 'Forgot password?')}
         </button>
       </form>
     </motion.div>

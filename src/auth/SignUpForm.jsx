@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useAnimation } from 'framer-motion'
 import { DEMO_OTP, PASSWORD_MIN_LENGTH } from './constants'
 import { addDemoUser } from './demoUserStore'
+import { useI18n } from '../i18n.jsx'
 import { UNIVERSITIES } from './universities'
 import { cardVariants, staggerContainer, staggerItem } from './motion'
 
@@ -16,6 +17,7 @@ function isValidEmail(value) {
 }
 
 export default function SignUpForm({ onSuccess }) {
+  const { t } = useI18n()
   const [step, setStep] = useState(1)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -36,19 +38,19 @@ export default function SignUpForm({ onSuccess }) {
     e.preventDefault()
     setError('')
     if (!fullName.trim()) {
-      setError('Please enter your full name.')
+      setError(t('authErrorEnterFullName', 'Please enter your full name.'))
       return
     }
     if (!isValidEmail(email)) {
-      setError('Please enter a valid email address.')
+      setError(t('authErrorInvalidEmail', 'Please enter a valid email address.'))
       return
     }
     if (!gender) {
-      setError('Please select a gender.')
+      setError(t('authErrorSelectGender', 'Please select a gender.'))
       return
     }
     if (!universityId) {
-      setError('Please select a university.')
+      setError(t('authErrorSelectUniversity', 'Please select a university.'))
       return
     }
     setStep(2)
@@ -58,7 +60,7 @@ export default function SignUpForm({ onSuccess }) {
     e.preventDefault()
     setError('')
     if (code.trim() !== DEMO_OTP) {
-      setError('Invalid code. Use 1234 for this demo.')
+      setError(t('authErrorInvalidCode', 'Invalid code. Use 1234 for this demo.'))
       shakeControls.start({ x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.45 } })
       return
     }
@@ -73,7 +75,7 @@ export default function SignUpForm({ onSuccess }) {
       return
     }
     if (password !== confirm) {
-      setError('Passwords do not match.')
+      setError(t('authErrorPasswordsMismatch', 'Passwords do not match.'))
       return
     }
     const res = addDemoUser({
@@ -84,16 +86,16 @@ export default function SignUpForm({ onSuccess }) {
       password,
     })
     if (!res.ok) {
-      setError(res.error)
+      setError(t(res.error, res.error))
       return
     }
     onSuccess()
   }
 
   const stepCopy = {
-    1: 'Tell us about you and your university.',
-    2: 'Enter the verification code (demo: 1234).',
-    3: 'Set a secure password.',
+    1: t('authTellUsAboutYou', 'Tell us about you and your university.'),
+    2: t('authEnterCodeDemo', 'Enter the verification code (demo: 1234).'),
+    3: t('authSetSecurePassword', 'Set a secure password.'),
   }
 
   return (
@@ -105,7 +107,7 @@ export default function SignUpForm({ onSuccess }) {
       animate="animate"
       exit="exit"
     >
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Create account</h2>
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t('authCreateAccount', 'Create account')}</h2>
       <AnimatePresence mode="wait">
         <motion.p
           key={step}
@@ -133,7 +135,7 @@ export default function SignUpForm({ onSuccess }) {
           <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
             <motion.div variants={staggerItem}>
               <label htmlFor="su-name" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Full name
+                {t('authFullName', 'Full name')}
               </label>
               <input
                 ref={firstFieldRef}
@@ -148,7 +150,7 @@ export default function SignUpForm({ onSuccess }) {
             </motion.div>
             <motion.div variants={staggerItem}>
               <label htmlFor="su-email" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Email
+                {t('authEmail', 'Email')}
               </label>
               <input
                 id="su-email"
@@ -162,7 +164,7 @@ export default function SignUpForm({ onSuccess }) {
             </motion.div>
             <motion.div variants={staggerItem}>
               <label htmlFor="su-gender" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Gender
+                {t('authGender', 'Gender')}
               </label>
               <select
                 id="su-gender"
@@ -171,16 +173,16 @@ export default function SignUpForm({ onSuccess }) {
                 className={selectClass}
                 required
               >
-                <option value="">Select…</option>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-                <option value="non-binary">Non-binary</option>
-                <option value="prefer-not">Prefer not to say</option>
+                <option value="">{t('authSelect', 'Select...')}</option>
+                <option value="female">{t('authFemale', 'Female')}</option>
+                <option value="male">{t('authMale', 'Male')}</option>
+                <option value="non-binary">{t('authNonBinary', 'Non-binary')}</option>
+                <option value="prefer-not">{t('authPreferNot', 'Prefer not to say')}</option>
               </select>
             </motion.div>
             <motion.div variants={staggerItem}>
               <label htmlFor="su-uni" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                University
+                {t('authUniversity', 'University')}
               </label>
               <select
                 id="su-uni"
@@ -189,7 +191,7 @@ export default function SignUpForm({ onSuccess }) {
                 className={selectClass}
                 required
               >
-                <option value="">Select university…</option>
+                <option value="">{t('authSelectUniversity', 'Select university...')}</option>
                 {UNIVERSITIES.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
@@ -209,7 +211,7 @@ export default function SignUpForm({ onSuccess }) {
             whileTap={{ scale: 0.98 }}
             className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
           >
-            Continue
+            {t('authContinue', 'Continue')}
           </motion.button>
         </motion.form>
       ) : null}
@@ -226,7 +228,7 @@ export default function SignUpForm({ onSuccess }) {
         >
           <motion.div animate={shakeControls}>
             <label htmlFor="su-code" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-              Verification code
+              {t('authVerificationCode', 'Verification code')}
             </label>
             <input
               ref={firstFieldRef}
@@ -252,7 +254,7 @@ export default function SignUpForm({ onSuccess }) {
             whileTap={{ scale: 0.98 }}
             className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
           >
-            Verify
+            {t('authVerify', 'Verify')}
           </motion.button>
         </motion.form>
       ) : null}
@@ -270,7 +272,7 @@ export default function SignUpForm({ onSuccess }) {
           <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
             <motion.div variants={staggerItem}>
               <label htmlFor="su-pass" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Password
+                {t('authPassword', 'Password')}
               </label>
               <input
                 ref={firstFieldRef}
@@ -286,7 +288,7 @@ export default function SignUpForm({ onSuccess }) {
             </motion.div>
             <motion.div variants={staggerItem}>
               <label htmlFor="su-confirm" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Confirm password
+                {t('authConfirmPassword', 'Confirm password')}
               </label>
               <input
                 id="su-confirm"
@@ -311,7 +313,7 @@ export default function SignUpForm({ onSuccess }) {
             whileTap={{ scale: 0.98 }}
             className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
           >
-            Create account
+            {t('authCreateAccount', 'Create account')}
           </motion.button>
         </motion.form>
       ) : null}

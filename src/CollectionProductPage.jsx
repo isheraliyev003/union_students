@@ -33,6 +33,7 @@ import {
   getProductGalleryImages,
   getRelatedCollectionProducts,
 } from './data/collectionsData.js'
+import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 const EMPTY_OPTIONS = []
@@ -56,6 +57,7 @@ const ACCORDIONS = [
 ]
 
 export default function CollectionProductPage() {
+  const { language, tl } = useI18n()
   const { id } = useParams()
   const reduceMotion = useReducedMotion()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
@@ -219,7 +221,7 @@ export default function CollectionProductPage() {
                 whileHover={reduceMotion ? {} : { x: -2 }}
               >
                 <ArrowLeft className="h-4 w-4 shrink-0 transition-transform group-hover:-translate-x-1" aria-hidden />
-                Index
+                {language === 'uz' ? 'Indeks' : language === 'ru' ? 'Индекс' : 'Index'}
               </motion.span>
               <span className="hidden h-4 w-px bg-[var(--prd-line)] sm:block" aria-hidden />
               <span className="hidden max-w-[200px] truncate text-[var(--prd-muted)] sm:inline">{product.name}</span>
@@ -227,7 +229,7 @@ export default function CollectionProductPage() {
 
             <div className="flex items-center gap-2 rounded-full border border-[var(--prd-line)] bg-[var(--prd-surface-2)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--prd-muted)] backdrop-blur-sm">
               <Radio className="h-3.5 w-3.5 text-[var(--prd-lime)] motion-safe:animate-pulse" aria-hidden />
-              live preview
+              {language === 'uz' ? "jonli ko'rinish" : language === 'ru' ? 'live preview' : 'live preview'}
             </div>
           </motion.div>
 
@@ -241,7 +243,7 @@ export default function CollectionProductPage() {
                 tabIndex={0}
                 role="region"
                 aria-roledescription="carousel"
-                aria-label="Product photos"
+                aria-label={language === 'uz' ? 'Mahsulot rasmlari' : language === 'ru' ? 'Фото продукта' : 'Product photos'}
                 onKeyDown={(e) => {
                   if (galleryLen <= 1) return
                   if (e.key === 'ArrowLeft') {
@@ -267,7 +269,7 @@ export default function CollectionProductPage() {
                       <button
                         type="button"
                         onClick={goPrevImage}
-                        aria-label="Previous image"
+                        aria-label={language === 'uz' ? 'Oldingi rasm' : language === 'ru' ? 'Предыдущее изображение' : 'Previous image'}
                         className="absolute left-2 top-1/2 z-30 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-lg backdrop-blur-md transition hover:bg-black/60 sm:left-3 sm:size-11"
                       >
                         <ChevronLeft className="h-5 w-5" aria-hidden />
@@ -275,7 +277,7 @@ export default function CollectionProductPage() {
                       <button
                         type="button"
                         onClick={goNextImage}
-                        aria-label="Next image"
+                        aria-label={language === 'uz' ? 'Keyingi rasm' : language === 'ru' ? 'Следующее изображение' : 'Next image'}
                         className="absolute right-2 top-1/2 z-30 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-lg backdrop-blur-md transition hover:bg-black/60 sm:right-3 sm:size-11"
                       >
                         <ChevronRight className="h-5 w-5" aria-hidden />
@@ -313,7 +315,7 @@ export default function CollectionProductPage() {
                   <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-end justify-between gap-3 sm:bottom-6 sm:left-6 sm:right-6">
                     <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-white backdrop-blur-md">
                       <Sparkles className="h-3.5 w-3.5 text-[var(--prd-lime)]" aria-hidden />
-                      {product.tag}
+                    {tl(product.tag)}
                     </span>
                     <motion.div
                       ref={priceRef}
@@ -376,10 +378,17 @@ export default function CollectionProductPage() {
                 </h1>
                 <p className="mt-4 text-pretty text-sm leading-relaxed text-[var(--prd-muted)] sm:text-[0.9375rem]">
                   {galleryLen > 1
-                    ? `${galleryLen} photos — use arrows, thumbnails, or ← → when the gallery is focused. `
+                    ? language === 'uz'
+                      ? `${galleryLen} rasm - galereya fokusda bo'lsa strelkalar yoki thumbnaildan foydalaning. `
+                      : language === 'ru'
+                        ? `${galleryLen} фото - используйте стрелки или миниатюры при фокусе галереи. `
+                        : `${galleryLen} photos - use arrows, thumbnails, or ← → when the gallery is focused. `
                     : ''}
-                  Drag over the hero to steer parallax. Pick variants below — price updates live. Stubs only — swap for
-                  real commerce logic.
+                  {language === 'uz'
+                    ? "Parallax uchun rasm ustida harakat qiling. Variant tanlang - narx jonli yangilanadi. Demo mantiq."
+                    : language === 'ru'
+                      ? 'Двигайте курсор по изображению для параллакса. Выбирайте варианты - цена обновляется в реальном времени. Демо-логика.'
+                      : 'Drag over the hero to steer parallax. Pick variants below - price updates live. Stubs only - swap for real commerce logic.'}
                 </p>
 
                 {optionGroups.length > 0 ? (
@@ -391,7 +400,7 @@ export default function CollectionProductPage() {
                     {optionGroups.map((group) => (
                       <div key={group.id}>
                         <p id={`pdp-opt-${group.id}`} className="text-xs font-bold text-[var(--prd-ink)]">
-                          {group.label}
+                          {tl(group.label)}
                         </p>
                         <div
                           role="radiogroup"
@@ -493,7 +502,7 @@ export default function CollectionProductPage() {
                         transition={{ duration: 0.55, ease: 'easeInOut' }}
                       />
                     ) : null}
-                    <span className="relative z-10">Acquire</span>
+                    <span className="relative z-10">{language === 'uz' ? 'Sotib olish' : language === 'ru' ? 'Купить' : 'Acquire'}</span>
                     <ArrowRight className="relative z-10 h-4 w-4" aria-hidden />
                   </motion.button>
                   <motion.button
@@ -503,7 +512,7 @@ export default function CollectionProductPage() {
                     transition={{ duration: 0.35 }}
                   >
                     <Share2 className="h-4 w-4" aria-hidden />
-                    Echo link
+                    {language === 'uz' ? 'Havolani ulashish' : language === 'ru' ? 'Поделиться ссылкой' : 'Echo link'}
                   </motion.button>
                 </div>
               </motion.div>
@@ -549,11 +558,15 @@ export default function CollectionProductPage() {
               <ul className="grid gap-3 sm:grid-cols-2">
                 <li className="flex gap-3 rounded-xl border border-[var(--prd-line)] bg-[var(--prd-surface-2)] p-4 backdrop-blur-sm">
                   <Package className="mt-0.5 h-5 w-5 shrink-0 text-[var(--prd-lime)]" aria-hidden />
-                  <span className="text-xs leading-relaxed text-[var(--prd-muted)]">No carrier APIs — demo dispatch only.</span>
+                  <span className="text-xs leading-relaxed text-[var(--prd-muted)]">
+                    {language === 'uz' ? "Yetkazib berish API yo'q - demo jo'natish." : language === 'ru' ? 'Нет API доставки - только демо-отправка.' : 'No carrier APIs - demo dispatch only.'}
+                  </span>
                 </li>
                 <li className="flex gap-3 rounded-xl border border-[var(--prd-line)] bg-[var(--prd-surface-2)] p-4 backdrop-blur-sm">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--prd-magenta)]" aria-hidden />
-                  <span className="text-xs leading-relaxed text-[var(--prd-muted)]">Policy text is filler until legal signs off.</span>
+                  <span className="text-xs leading-relaxed text-[var(--prd-muted)]">
+                    {language === 'uz' ? "Policy matni hozircha demo to'ldiruvchi." : language === 'ru' ? 'Текст политики пока заполнитель.' : 'Policy text is filler until legal signs off.'}
+                  </span>
                 </li>
               </ul>
             </div>
@@ -563,13 +576,19 @@ export default function CollectionProductPage() {
             <section className="relative mt-20 border-t border-[var(--prd-line)] pt-14 sm:mt-24 sm:pt-16">
               <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">Adjacent signals</h2>
+                  <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+                    {language === 'uz' ? "O'xshash signallar" : language === 'ru' ? 'Соседние позиции' : 'Adjacent signals'}
+                  </h2>
                   <p className="mt-1 max-w-md text-sm text-[var(--prd-muted)]">
-                    Same category — hover for tilt. Stacks vertically on every viewport.
+                    {language === 'uz'
+                      ? "Bir xil kategoriya - hover qiling. Barcha ekranlarda vertikal moslashadi."
+                      : language === 'ru'
+                        ? 'Та же категория - наведите для наклона. Адаптивно складывается по вертикали.'
+                        : 'Same category - hover for tilt. Stacks vertically on every viewport.'}
                   </p>
                 </div>
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--prd-lime)]">
-                  {related.length} channels
+                  {related.length} {language === 'uz' ? 'kanal' : language === 'ru' ? 'каналов' : 'channels'}
                 </p>
               </div>
 

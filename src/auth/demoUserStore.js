@@ -30,7 +30,7 @@ export function findDemoUserByEmail(email) {
 export function addDemoUser(user) {
   const users = readRaw()
   if (users.some((u) => u.email.toLowerCase() === user.email.trim().toLowerCase())) {
-    return { ok: false, error: 'An account with this email already exists.' }
+    return { ok: false, error: 'auth.error.accountExists' }
   }
   users.push({
     email: user.email.trim(),
@@ -46,15 +46,16 @@ export function addDemoUser(user) {
 export function updateDemoUserPassword(email, newPassword) {
   const users = readRaw()
   const idx = users.findIndex((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-  if (idx === -1) return { ok: false, error: 'No account found for this email.' }
+  if (idx === -1) return { ok: false, error: 'auth.error.noAccount' }
   users[idx] = { ...users[idx], password: newPassword }
   writeUsers(users)
   return { ok: true }
 }
 
-export function verifyDemoCredentials(email, password) {
+export function verifyDemoCredentials(email, password, t = null) {
+  const tx = (key, fallback) => (typeof t === 'function' ? t(key, fallback) : fallback)
   const user = findDemoUserByEmail(email)
-  if (!user) return { ok: false, error: 'No account found for this email.' }
-  if (user.password !== password) return { ok: false, error: 'Incorrect password.' }
+  if (!user) return { ok: false, error: tx('authErrorNoAccount', 'No account found for this email.') }
+  if (user.password !== password) return { ok: false, error: tx('authErrorWrongPassword', 'Incorrect password.') }
   return { ok: true, user }
 }

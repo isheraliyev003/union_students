@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { LogOut, Menu, MoonStar, Settings, SunMedium, User, WandSparkles, X } from 'lucide-react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { readRegistered, setRegistered } from '../authSession.js'
+import { useI18n } from '../i18n.jsx'
 import ScrollProgressRail from './ScrollProgressRail.jsx'
 
 const navLinkClass = ({ isActive }) =>
@@ -17,9 +18,16 @@ const mobileNavLinkClass = ({ isActive }) =>
       : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/90'
   }`
 
+const LANGUAGE_OPTIONS = [
+  { code: 'uz', flag: '🇺🇿', label: "O'zbek" },
+  { code: 'en', flag: '🇬🇧', label: 'English' },
+  { code: 'ru', flag: '🇷🇺', label: 'Русский' },
+]
+
 export default function SiteHeader({ isDark, setIsDark }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { language, setLanguage, t } = useI18n()
   const [accountOpen, setAccountOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const accountWrapRef = useRef(null)
@@ -93,15 +101,15 @@ export default function SiteHeader({ isDark, setIsDark }) {
             onClick={() => setMobileNavOpen(false)}
           >
             <WandSparkles className="h-4 w-4 shrink-0 text-violet-500 sm:h-[1.125rem] sm:w-[1.125rem]" aria-hidden />
-            <span className="truncate sm:whitespace-normal">Union Students Studio</span>
+            <span className="truncate sm:whitespace-normal">{t('brandName', 'Union Students Studio')}</span>
           </Link>
 
           <nav
-            aria-label="Primary"
+            aria-label={t('headerPrimary', 'Primary')}
             className="hidden items-center justify-center gap-x-1 text-sm font-medium text-slate-600 lg:flex lg:flex-1 lg:gap-x-6 xl:gap-x-8 dark:text-slate-300"
           >
             <NavLink to="/" end className={navLinkClass}>
-              Home
+              {t('navHome', 'Home')}
             </NavLink>
             <NavLink
               to="/universities"
@@ -109,7 +117,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                 navLinkClass({ isActive: isActive || pathname.startsWith('/universities/') })
               }
             >
-              Universities
+              {t('navUniversities', 'Universities')}
             </NavLink>
             <NavLink
               to="/collections"
@@ -117,21 +125,46 @@ export default function SiteHeader({ isDark, setIsDark }) {
                 navLinkClass({ isActive: isActive || pathname.startsWith('/collections/') })
               }
             >
-              Collections
+              {t('navCollections', 'Collections')}
             </NavLink>
             <NavLink to="/news" className={navLinkClass}>
-              News
+              {t('navNews', 'News')}
             </NavLink>
             <NavLink to="/about" className={navLinkClass}>
-              About Us
+              {t('navAbout', 'About Us')}
             </NavLink>
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div
+              className="hidden items-center gap-1 rounded-full border border-slate-200 bg-white/95 p-1 shadow-[0_10px_24px_-14px_rgba(15,23,42,0.2)] backdrop-blur-md lg:flex dark:border-slate-600/70 dark:bg-slate-900/90 dark:shadow-[0_10px_26px_-16px_rgba(2,6,23,0.7)]"
+              role="group"
+              aria-label={t('langLabel', 'Language')}
+            >
+              {LANGUAGE_OPTIONS.map((opt) => {
+                const active = language === opt.code
+                return (
+                  <button
+                    key={opt.code}
+                    type="button"
+                    onClick={() => setLanguage(opt.code)}
+                    aria-label={opt.label}
+                    title={opt.label}
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-full text-base transition-all duration-200 ${
+                      active
+                        ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-[0_6px_16px_-8px_rgba(168,85,247,0.8)]'
+                        : 'bg-slate-100/90 opacity-90 hover:scale-105 hover:bg-slate-200 dark:bg-transparent dark:opacity-75 dark:hover:bg-slate-800/60 dark:hover:opacity-100'
+                    }`}
+                  >
+                    <span aria-hidden>{opt.flag}</span>
+                  </button>
+                )
+              })}
+            </div>
             <button
               type="button"
               onClick={() => setIsDark((prev) => !prev)}
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={isDark ? t('themeLight', 'Switch to light mode') : t('themeDark', 'Switch to dark mode')}
               className="site-header-icon-btn flex size-9 shrink-0 items-center justify-center rounded-full transition hover:scale-105 active:scale-95 sm:size-10"
             >
               {isDark ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
@@ -143,7 +176,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                 aria-haspopup={readRegistered() ? 'dialog' : undefined}
                 aria-controls={readRegistered() ? 'account-popover' : undefined}
                 id="account-menu-button"
-                aria-label={readRegistered() ? 'Open account menu' : 'Sign in — go to login page'}
+                aria-label={readRegistered() ? t('headerOpenAccountMenu', 'Open account menu') : `${t('authSignIn', 'Sign in')} — go to login page`}
                 onClick={() => {
                   if (!readRegistered()) {
                     navigate('/login')
@@ -171,9 +204,9 @@ export default function SiteHeader({ isDark, setIsDark }) {
                     style={{ borderColor: 'var(--site-header-popover-border)' }}
                   >
                     <p id="account-popover-title" className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      Account
+                      {t('navAccount', 'Account')}
                     </p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">student@union.edu</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{t('accountEmailDemo', 'student@union.edu')}</p>
                   </div>
                   <div className="py-1">
                     <a
@@ -182,7 +215,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                       onClick={() => setAccountOpen(false)}
                     >
                       <User className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                      Profile
+                      {t('navProfile', 'Profile')}
                     </a>
                     <a
                       href="#settings"
@@ -190,7 +223,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                       onClick={() => setAccountOpen(false)}
                     >
                       <Settings className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                      Settings
+                      {t('navSettings', 'Settings')}
                     </a>
                   </div>
                   <div className="border-t pt-1" style={{ borderColor: 'var(--site-header-popover-border)' }}>
@@ -203,7 +236,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                       }}
                     >
                       <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-                      Sign out
+                      {t('navSignOut', 'Sign out')}
                     </button>
                   </div>
                 </div>
@@ -214,7 +247,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
               ref={menuButtonRef}
               type="button"
               className="site-header-menu-btn inline-flex size-9 shrink-0 items-center justify-center rounded-full transition active:scale-95 lg:hidden sm:size-10"
-              aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileNavOpen ? t('navCloseMenu', 'Close menu') : t('navOpenMenu', 'Open menu')}
               aria-expanded={mobileNavOpen}
               aria-controls="mobile-primary-nav"
               onClick={() => setMobileNavOpen((o) => !o)}
@@ -229,7 +262,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
             <>
               <motion.button
                 type="button"
-                aria-label="Close menu"
+                aria-label={t('navCloseMenu', 'Close menu')}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -241,7 +274,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                 ref={mobileNavRef}
                 id="mobile-primary-nav"
                 role="navigation"
-                aria-label="Primary mobile"
+                aria-label={t('headerPrimaryMobile', 'Primary mobile')}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -250,7 +283,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
               >
                 <nav className="flex max-h-[min(70dvh,28rem)] flex-col gap-0.5 overflow-y-auto px-2 pb-[env(safe-area-inset-bottom,0px)] pt-1">
                   <NavLink to="/" end className={mobileNavLinkClass} onClick={() => setMobileNavOpen(false)}>
-                    Home
+                    {t('navHome', 'Home')}
                   </NavLink>
                   <NavLink
                     to="/universities"
@@ -259,7 +292,7 @@ export default function SiteHeader({ isDark, setIsDark }) {
                     }
                     onClick={() => setMobileNavOpen(false)}
                   >
-                    Universities
+                    {t('navUniversities', 'Universities')}
                   </NavLink>
                   <NavLink
                     to="/collections"
@@ -268,14 +301,41 @@ export default function SiteHeader({ isDark, setIsDark }) {
                     }
                     onClick={() => setMobileNavOpen(false)}
                   >
-                    Collections
+                    {t('navCollections', 'Collections')}
                   </NavLink>
                   <NavLink to="/news" className={mobileNavLinkClass} onClick={() => setMobileNavOpen(false)}>
-                    News
+                    {t('navNews', 'News')}
                   </NavLink>
                   <NavLink to="/about" className={mobileNavLinkClass} onClick={() => setMobileNavOpen(false)}>
-                    About Us
+                    {t('navAbout', 'About Us')}
                   </NavLink>
+                  <div className="px-2 pt-1">
+                    <div
+                      className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/95 p-2 shadow-[0_8px_20px_-14px_rgba(15,23,42,0.2)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none"
+                      role="group"
+                      aria-label={t('langLabel', 'Language')}
+                    >
+                      {LANGUAGE_OPTIONS.map((opt) => {
+                        const active = language === opt.code
+                        return (
+                          <button
+                            key={opt.code}
+                            type="button"
+                            onClick={() => setLanguage(opt.code)}
+                            aria-label={opt.label}
+                            title={opt.label}
+                            className={`flex h-10 w-10 items-center justify-center rounded-full text-lg transition-all ${
+                              active
+                                ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-md'
+                                : 'bg-slate-100 hover:scale-105 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            <span aria-hidden>{opt.flag}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </nav>
               </motion.div>
             </>

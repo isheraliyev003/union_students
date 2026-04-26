@@ -14,6 +14,7 @@ import AboutPage from './AboutPage.jsx'
 import NewsPage from './NewsPage.jsx'
 import UniversitiesPage from './UniversitiesPage.jsx'
 import UniversityDetailPage from './UniversityDetailPage.jsx'
+import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 const BANNER_VIDEO_SOURCES = [
@@ -24,6 +25,7 @@ const BANNER_VIDEO_SOURCES = [
 
 function MainSite() {
   const reduceMotion = useReducedMotion()
+  const { language, t } = useI18n()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
   const [bannerVideoIndex, setBannerVideoIndex] = useState(0)
 
@@ -33,7 +35,44 @@ function MainSite() {
   }, [isDark])
 
   const cards = useMemo(
-    () => [
+    () =>
+      language === 'uz'
+        ? [
+            {
+              id: 'universities',
+              title: 'Mood Lens UI',
+              description: "Qatlamli chuqurlik, shaffof yuzalar va brendingizga mos harakatlar.",
+            },
+            {
+              id: 'news',
+              title: 'Silliq animatsiyalar',
+              description: 'Framer Motion asosidagi mikro-interaksiyalar va suzuvchi qatlamlar.',
+            },
+            {
+              id: 'about',
+              title: 'Dark / Light xotirasi',
+              description: 'Mavzu tanlovi saqlanadi va keyingi kirishda tiklanadi.',
+            },
+          ]
+        : language === 'ru'
+          ? [
+              {
+                id: 'universities',
+                title: 'Mood Lens UI',
+                description: 'Слоистая глубина, стеклянные поверхности и анимации в тоне вашего бренда.',
+              },
+              {
+                id: 'news',
+                title: 'Плавные анимации',
+                description: 'Микро-взаимодействия и парящие слои на Framer Motion.',
+              },
+              {
+                id: 'about',
+                title: 'Память темы',
+                description: 'Выбранная тема сохраняется и автоматически восстанавливается.',
+              },
+            ]
+          : [
       {
         id: 'universities',
         title: 'Mood Lens UI',
@@ -50,7 +89,7 @@ function MainSite() {
         description: 'Theme preference is stored and restored automatically on next visit.',
       },
     ],
-    [],
+    [language],
   )
 
   return (
@@ -93,7 +132,7 @@ function MainSite() {
                   transition={{ duration: 0.6 }}
                   className="text-balance text-3xl font-bold leading-[1.12] tracking-tight sm:text-4xl md:text-5xl lg:text-6xl lg:leading-[1.08]"
                 >
-                  A unique React experience with motion, mood, and interaction.
+                  {t('homeHeroTitle', 'A unique React experience with motion, mood, and interaction.')}
                 </motion.h1>
                 <motion.p
                   initial={{ y: 20, opacity: 0 }}
@@ -101,8 +140,10 @@ function MainSite() {
                   transition={{ duration: 0.8, delay: 0.12 }}
                   className="mt-5 max-w-xl text-pretty text-[0.95rem] leading-relaxed text-slate-600 dark:text-slate-300 sm:mt-6 sm:text-base md:text-lg"
                 >
-                  This Vite + React website uses Tailwind and motion for a polished, modern feel. Use it as your
-                  foundation for a memorable brand.
+                  {t(
+                    'homeHeroText',
+                    'This Vite + React website uses Tailwind and motion for a polished, modern feel. Use it as your foundation for a memorable brand.',
+                  )}
                 </motion.p>
               </div>
 
@@ -112,7 +153,7 @@ function MainSite() {
                 className="relative mx-auto w-full max-w-md rounded-2xl border border-violet-400/30 bg-gradient-to-br from-violet-500/20 to-cyan-400/20 p-5 shadow-2xl sm:max-w-none sm:rounded-3xl sm:p-7 md:mx-0 md:p-8"
               >
                 <div className="absolute -top-3 right-4 rounded-full bg-white px-2.5 py-0.5 text-[10px] font-semibold shadow-sm sm:-top-4 sm:right-6 sm:px-3 sm:py-1 sm:text-xs dark:bg-slate-900">
-                  LIVE UI
+                  {t('homeLiveUi', 'LIVE UI')}
                 </div>
                 <div className="space-y-4 sm:space-y-5">
                   <div className="h-2 w-2/3 rounded-full bg-slate-700/20 dark:bg-white/30" />

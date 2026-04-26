@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useAnimation } from 'framer-motion'
 import { DEMO_OTP, PASSWORD_MIN_LENGTH } from './constants'
 import { findDemoUserByEmail, updateDemoUserPassword } from './demoUserStore'
+import { useI18n } from '../i18n.jsx'
 import { cardVariants, staggerContainer, staggerItem } from './motion'
 
 const inputClass =
@@ -14,6 +15,7 @@ const stepCopy = {
 }
 
 export default function ResetPasswordForm({ onBack, onComplete }) {
+  const { t } = useI18n()
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -31,7 +33,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
     e.preventDefault()
     setError('')
     if (!findDemoUserByEmail(email)) {
-      setError('No account found for this email.')
+      setError(t('authErrorNoAccount', 'No account found for this email.'))
       return
     }
     setStep(2)
@@ -41,7 +43,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
     e.preventDefault()
     setError('')
     if (code.trim() !== DEMO_OTP) {
-      setError('Invalid code. Try again.')
+      setError(t('authErrorInvalidCodeTryAgain', 'Invalid code. Try again.'))
       controls.start({ x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.45 } })
       return
     }
@@ -56,12 +58,12 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
       return
     }
     if (password !== confirm) {
-      setError('Passwords do not match.')
+      setError(t('authErrorPasswordsMismatch', 'Passwords do not match.'))
       return
     }
     const res = updateDemoUserPassword(email, password)
     if (!res.ok) {
-      setError(res.error)
+      setError(t(res.error, res.error))
       return
     }
     onComplete(email)
@@ -83,9 +85,9 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
         onClick={onBack}
         className="mb-4 text-sm font-medium text-violet-600 hover:underline dark:text-violet-400"
       >
-        ← Back to sign in
+        ← {t('authBackToSignIn', 'Back to sign in')}
       </motion.button>
-      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Reset password</h2>
+      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{t('authResetPassword', 'Reset password')}</h2>
       <AnimatePresence mode="wait">
         <motion.p
           key={step}
@@ -95,7 +97,11 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
           transition={{ duration: 0.2 }}
           className="mt-1 text-sm text-slate-600 dark:text-slate-400"
         >
-          {stepCopy[step]}
+          {step === 1
+            ? t('authEnterAccountEmail', stepCopy[1])
+            : step === 2
+              ? t('authEnterResetCode', stepCopy[2])
+              : t('authChooseNewPassword', stepCopy[3])}
         </motion.p>
       </AnimatePresence>
 
@@ -113,7 +119,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
             <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
               <motion.div variants={staggerItem}>
                 <label htmlFor="reset-email" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Email
+                  {t('authEmail', 'Email')}
                 </label>
                 <input
                   ref={firstFieldRef}
@@ -137,7 +143,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
               whileTap={{ scale: 0.98 }}
               className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
             >
-              Send
+              {t('authSend', 'Send')}
             </motion.button>
           </motion.form>
         ) : null}
@@ -154,7 +160,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
           >
             <motion.div animate={controls}>
               <label htmlFor="reset-code" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                Verification code
+                {t('authVerificationCode', 'Verification code')}
               </label>
               <input
                 ref={firstFieldRef}
@@ -181,7 +187,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
               whileTap={{ scale: 0.98 }}
               className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
             >
-              Verify code
+              {t('authVerifyCode', 'Verify code')}
             </motion.button>
           </motion.form>
         ) : null}
@@ -199,7 +205,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
             <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
               <motion.div variants={staggerItem}>
                 <label htmlFor="reset-new-pass" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                  New password
+                  {t('authNewPassword', 'New password')}
                 </label>
                 <input
                   ref={firstFieldRef}
@@ -215,7 +221,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
               </motion.div>
               <motion.div variants={staggerItem}>
                 <label htmlFor="reset-confirm" className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Confirm password
+                  {t('authConfirmPassword', 'Confirm password')}
                 </label>
                 <input
                   id="reset-confirm"
@@ -240,7 +246,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
               whileTap={{ scale: 0.98 }}
               className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
             >
-              Update password
+              {t('authUpdatePassword', 'Update password')}
             </motion.button>
           </motion.form>
         ) : null}

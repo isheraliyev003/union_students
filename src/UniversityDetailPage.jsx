@@ -5,11 +5,13 @@ import { Navigate, useParams } from 'react-router-dom'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
 import { getUniversityDetail, UNIVERSITY_HERO_VIDEOS } from './data/universityDetail.js'
+import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 const springCfg = { stiffness: 38, damping: 18, mass: 0.6 }
 
 export default function UniversityDetailPage() {
+  const { language, tl } = useI18n()
   const { id } = useParams()
   const uni = useMemo(() => (id ? getUniversityDetail(id) : null), [id])
   const videos = useMemo(() => {
@@ -111,7 +113,7 @@ export default function UniversityDetailPage() {
               className="mt-8 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.28em] text-violet-700 dark:text-amber-300/95"
               whileHover={{ x: 6 }}
             >
-              Scroll for story + picks
+              {language === 'uz' ? 'Hikoya va tanlovlar uchun pastga tushing' : language === 'ru' ? 'Прокрутите для истории и подборки' : 'Scroll for story + picks'}
               <ChevronDown className="h-4 w-4 animate-bounce" aria-hidden />
             </motion.a>
           </motion.div>
@@ -127,30 +129,30 @@ export default function UniversityDetailPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-violet-600 dark:text-fuchsia-300/90">
-                    {uni.shopHeadline}
+                    {tl(uni.shopHeadline)}
                   </p>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">{uni.shopIntro}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-zinc-300">{tl(uni.shopIntro)}</p>
                 </div>
                 <ShoppingBag className="h-8 w-8 shrink-0 text-violet-500 dark:text-amber-300/80" aria-hidden />
               </div>
               <ul className="mt-5 space-y-2.5 border-t border-slate-200 pt-5 text-sm text-slate-600 dark:border-white/10 dark:text-zinc-400">
-                {uni.shopBullets.map((line) => (
-                  <li key={line} className="flex gap-2">
+                {uni.shopBullets.map((line, index) => (
+                  <li key={`${index}-${tl(line)}`} className="flex gap-2">
                     <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-violet-500 dark:bg-amber-400/80" aria-hidden />
-                    <span>{line}</span>
+                    <span>{tl(line)}</span>
                   </li>
                 ))}
               </ul>
               <div className="mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {uni.shopProductTeasers.map((p) => (
                   <motion.div
-                    key={p.name}
+                    key={tl(p.name)}
                     whileHover={{ y: -4, scale: 1.03 }}
                     className="w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5"
                   >
                     <img src={p.img} alt="" className="aspect-square w-full object-cover" loading="lazy" />
                     <div className="px-1.5 py-1.5">
-                      <p className="truncate text-[10px] font-semibold text-slate-800 dark:text-zinc-200">{p.name}</p>
+                      <p className="truncate text-[10px] font-semibold text-slate-800 dark:text-zinc-200">{tl(p.name)}</p>
                       <p className="text-[10px] text-violet-600 dark:text-amber-200/90">${p.price}</p>
                     </div>
                   </motion.div>
@@ -162,7 +164,7 @@ export default function UniversityDetailPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Read the story
+                {language === 'uz' ? "Hikoyani o'qish" : language === 'ru' ? 'Читать историю' : 'Read the story'}
               </motion.a>
             </div>
           </motion.div>
@@ -192,14 +194,18 @@ export default function UniversityDetailPage() {
           >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-violet-600 dark:text-fuchsia-400/90">
-                Inside the campus
+                {language === 'uz' ? 'Kampus ichida' : language === 'ru' ? 'Внутри кампуса' : 'Inside the campus'}
               </p>
               <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl dark:text-white">
-                Field notes
+                {language === 'uz' ? 'Kuzatuvlar' : language === 'ru' ? 'Полевые заметки' : 'Field notes'}
               </h2>
             </div>
             <p className="max-w-md text-sm text-slate-600 dark:text-zinc-400">
-              Numbers are illustrative for this demo — wire your analytics and CRM when you connect a backend.
+              {language === 'uz'
+                ? "Raqamlar demo uchun. Backend ulanganda analytics va CRM ni ulang."
+                : language === 'ru'
+                  ? 'Цифры условные для демо; подключите аналитику и CRM при интеграции бэкенда.'
+                  : 'Numbers are illustrative for this demo - wire your analytics and CRM when you connect a backend.'}
             </p>
           </motion.div>
 
@@ -213,9 +219,9 @@ export default function UniversityDetailPage() {
             }}
             className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-5"
           >
-            {uni.stats.map((s) => (
+            {uni.stats.map((s, index) => (
               <motion.li
-                key={s.label}
+                key={`${index}-${tl(s.label)}`}
                 variants={{
                   hidden: { opacity: 0, y: 20 },
                   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 26 } },
@@ -226,7 +232,7 @@ export default function UniversityDetailPage() {
                   {s.value}
                 </p>
                 <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-                  {s.label}
+                  {tl(s.label)}
                 </p>
               </motion.li>
             ))}
@@ -242,7 +248,7 @@ export default function UniversityDetailPage() {
                 transition={{ delay: i * 0.06, duration: 0.55 }}
                 className={`text-base leading-relaxed text-slate-600 dark:text-zinc-400 ${i === 1 ? 'lg:border-l lg:border-slate-300 lg:pl-10 dark:lg:border-white/10' : ''}`}
               >
-                {para}
+                {tl(para)}
               </motion.p>
             ))}
           </div>

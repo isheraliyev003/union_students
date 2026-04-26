@@ -2,6 +2,7 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { MapPin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useI18n } from '../i18n.jsx'
 import { UZ_MAP_ATTRIBUTION, UZ_MAP_VIEWBOX, UZ_REGIONS } from '../data/uzbekistanMap.js'
 
 const baseFill = {
@@ -24,6 +25,7 @@ const TOOLTIP_EDGE_MARGIN = 8
 
 export default function UzbekistanMapSection({ isDark = false }) {
   const reduceMotion = useReducedMotion()
+  const { language, tl } = useI18n()
   const navigate = useNavigate()
   const titleId = useId()
   const descId = useId()
@@ -129,14 +131,17 @@ export default function UzbekistanMapSection({ isDark = false }) {
       <div className="relative z-10 mx-auto flex min-h-[min(100dvh,880px)] max-w-6xl flex-col px-4 sm:px-6 md:px-8">
         <div className="mb-8 max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600 dark:text-violet-400">
-            Explore
+            {language === 'uz' ? "Ko'rib chiqing" : language === 'ru' ? 'Изучайте' : 'Explore'}
           </p>
           <h2 id={titleId} className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
-            Uzbekistan at a glance
+            {language === 'uz' ? 'Oʻzbekiston bir qarashda' : language === 'ru' ? 'Узбекистан с первого взгляда' : 'Uzbekistan at a glance'}
           </h2>
           <p id={descId} className="mt-3 text-pretty text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
-            Hover or focus a region, then press Enter to open the universities list filtered for that area (demo
-            regions).
+            {language === 'uz'
+              ? "Hudud ustiga olib boring yoki fokus qiling, so'ng Enter bosing - shu hudud bo'yicha universitetlar ro'yxati ochiladi (demo)."
+              : language === 'ru'
+                ? 'Наведите или выделите регион, затем нажмите Enter - откроется список университетов с фильтром по региону (демо).'
+                : 'Hover or focus a region, then press Enter to open the universities list filtered for that area (demo regions).'}
           </p>
         </div>
 
@@ -160,7 +165,7 @@ export default function UzbekistanMapSection({ isDark = false }) {
             <svg
               viewBox={UZ_MAP_VIEWBOX}
               role="img"
-              aria-label="Map of Uzbekistan regions"
+              aria-label={language === 'uz' ? "O'zbekiston hududlari xaritasi" : language === 'ru' ? 'Карта регионов Узбекистана' : 'Map of Uzbekistan regions'}
               className="h-auto w-full drop-shadow-[0_20px_50px_-20px_rgba(15,23,42,0.25)] dark:drop-shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)]"
               preserveAspectRatio="xMidYMid meet"
             >
@@ -199,7 +204,7 @@ export default function UzbekistanMapSection({ isDark = false }) {
                     key={region.id}
                     role="button"
                     tabIndex={0}
-                    aria-label={`${region.labelEn}, ${region.labelUz}`}
+                    aria-label={`${tl(region.label)}, ${region.catalogRegionId}`}
                     {...interactive}
                     className="outline-none focus-visible:outline-none"
                   >
@@ -232,25 +237,29 @@ export default function UzbekistanMapSection({ isDark = false }) {
                   transform: tooltipLayout.transform,
                 }}
               >
-                <p className="font-semibold">{active.labelEn}</p>
-                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{active.labelUz}</p>
+                <p className="font-semibold">{tl(active.label)}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{active.catalogRegionId}</p>
                 <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-violet-600 dark:text-violet-400">
-                  Opens universities · {active.catalogRegionId}
+                  {language === 'uz'
+                    ? `Universitetlar ochiladi · ${active.catalogRegionId}`
+                    : language === 'ru'
+                      ? `Откроются университеты · ${active.catalogRegionId}`
+                      : `Opens universities · ${active.catalogRegionId}`}
                 </p>
               </motion.div>
             ) : null}
           </motion.div>
 
           <p id={liveId} className="sr-only" aria-live="polite">
-            {active ? `${active.labelEn}. ${active.labelUz}.` : ''}
+            {active ? `${tl(active.label)}.` : ''}
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <MapPin className="h-3.5 w-3.5 shrink-0 text-violet-500" aria-hidden />
-            <span>{UZ_MAP_ATTRIBUTION.title}</span>
+            <span>{tl(UZ_MAP_ATTRIBUTION.title)}</span>
           </div>
           <p className="mt-2 max-w-3xl text-[11px] leading-relaxed text-slate-500 dark:text-slate-500">
-            {UZ_MAP_ATTRIBUTION.note}
+            {tl(UZ_MAP_ATTRIBUTION.note)}
             {UZ_MAP_ATTRIBUTION.referenceUrl ? (
               <>
                 {' '}
@@ -258,7 +267,7 @@ export default function UzbekistanMapSection({ isDark = false }) {
                   href={UZ_MAP_ATTRIBUTION.referenceUrl}
                   className="text-violet-600 underline-offset-2 hover:underline dark:text-violet-400"
                 >
-                  Reference
+                  {language === 'uz' ? 'Manba' : language === 'ru' ? 'Источник' : 'Reference'}
                 </a>
               </>
             ) : null}
@@ -270,7 +279,7 @@ export default function UzbekistanMapSection({ isDark = false }) {
                   href={UZ_MAP_ATTRIBUTION.licenseUrl}
                   className="text-violet-600 underline-offset-2 hover:underline dark:text-violet-400"
                 >
-                  License
+                  {language === 'uz' ? 'Litsenziya' : language === 'ru' ? 'Лицензия' : 'License'}
                 </a>
               </>
             ) : null}

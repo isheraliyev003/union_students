@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { setRegistered } from '../authSession.js'
+import { useI18n } from '../i18n.jsx'
 import ResetPasswordForm from './ResetPasswordForm.jsx'
 import SignInForm from './SignInForm.jsx'
 import SignUpForm from './SignUpForm.jsx'
 
 export default function AuthCard() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [tab, setTab] = useState('signIn')
   const [showReset, setShowReset] = useState(false)
   const [prefilledEmail, setPrefilledEmail] = useState('')
@@ -48,7 +50,7 @@ export default function AuthCard() {
                     : 'text-slate-800 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white'
                 }`}
               >
-                Sign in
+                {t('authSignIn', 'Sign in')}
               </motion.button>
               <motion.button
                 type="button"
@@ -62,7 +64,7 @@ export default function AuthCard() {
                     : 'text-slate-800 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white'
                 }`}
               >
-                Sign up
+                {t('authSignUp', 'Sign up')}
               </motion.button>
             </div>
 

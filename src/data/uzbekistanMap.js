@@ -5,9 +5,16 @@ import pathList from './uzbekistanPaths.json'
  * Universities catalog: tashkent | samarkand | bukhara | fergana | other
  */
 export const UZ_MAP_ATTRIBUTION = {
-  title: 'Uzbekistan map',
-  note:
-    'Vector artwork used for this interactive demo. Region labels are approximate for navigation; verify against official sources for geographic work.',
+  title: {
+    en: 'Uzbekistan map',
+    uz: "O'zbekiston xaritasi",
+    ru: 'Карта Узбекистана',
+  },
+  note: {
+    en: 'Vector artwork used for this interactive demo. Region labels are approximate for navigation; verify against official sources for geographic work.',
+    uz: "Ushbu interaktiv demo uchun vektor xarita ishlatilgan. Hudud nomlari navigatsiya uchun taxminiy.",
+    ru: 'В этом интерактивном демо используется векторная карта. Названия регионов приблизительны для навигации.',
+  },
   licenseUrl: '',
   referenceUrl: '',
 }
@@ -15,80 +22,119 @@ export const UZ_MAP_ATTRIBUTION = {
 const DEFS = [
   {
     id: 'uz-west',
-    labelEn: 'Western regions (Karakalpakstan & Khorezm)',
-    labelUz: 'Gʻarbiy hududlar',
+    label: {
+      en: 'Western regions (Karakalpakstan & Khorezm)',
+      uz: "G'arbiy hududlar (Qoraqalpog'iston va Xorazm)",
+      ru: 'Западные регионы (Каракалпакстан и Хорезм)',
+    },
     catalogRegionId: 'other',
   },
   {
     id: 'uz-north',
-    labelEn: 'North & capital area',
-    labelUz: 'Shimol va poytaxt atrofi',
+    label: {
+      en: 'North & capital area',
+      uz: 'Shimol va poytaxt atrofi',
+      ru: 'Север и столичный регион',
+    },
     catalogRegionId: 'tashkent',
   },
   {
     id: 'uz-central',
-    labelEn: 'Central steppe & Zarafshan',
-    labelUz: 'Markaziy va Zarafshon',
+    label: {
+      en: 'Central steppe & Zarafshan',
+      uz: 'Markaziy hudud va Zarafshon',
+      ru: 'Центральная степь и Зарафшан',
+    },
     catalogRegionId: 'samarkand',
   },
   {
     id: 'uz-south',
-    labelEn: 'South (Surkhandarya & border)',
-    labelUz: 'Janub',
+    label: {
+      en: 'South (Surkhandarya & border)',
+      uz: 'Janub (Surxondaryo va chegara)',
+      ru: 'Юг (Сурхандарья и граница)',
+    },
     catalogRegionId: 'other',
   },
   {
     id: 'uz-southeast-a',
-    labelEn: 'Southeast',
-    labelUz: 'Janubi-sharq',
+    label: {
+      en: 'Southeast',
+      uz: 'Janubi-sharq',
+      ru: 'Юго-восток',
+    },
     catalogRegionId: 'other',
   },
   {
     id: 'uz-south-edge',
-    labelEn: 'South foothills',
-    labelUz: 'Janubiy etag',
+    label: {
+      en: 'South foothills',
+      uz: "Janubiy etak hududlar",
+      ru: 'Южные предгорья',
+    },
     catalogRegionId: 'other',
   },
   {
     id: 'uz-east-a',
-    labelEn: 'Eastern valleys',
-    labelUz: 'Sharqiy vodiy',
+    label: {
+      en: 'Eastern valleys',
+      uz: 'Sharqiy vodiylar',
+      ru: 'Восточные долины',
+    },
     catalogRegionId: 'fergana',
   },
   {
     id: 'uz-east-center',
-    labelEn: 'East–central',
-    labelUz: 'Markaziy-sharq',
+    label: {
+      en: 'East-central',
+      uz: "Markaziy-sharq",
+      ru: 'Восточно-центральный регион',
+    },
     catalogRegionId: 'samarkand',
   },
   {
     id: 'uz-east-b',
-    labelEn: 'Far northeast',
-    labelUz: 'Uzoq shimoli-sharq',
+    label: {
+      en: 'Far northeast',
+      uz: 'Uzoq shimoli-sharq',
+      ru: 'Дальний северо-восток',
+    },
     catalogRegionId: 'fergana',
   },
   {
     id: 'uz-northeast',
-    labelEn: 'Northeast',
-    labelUz: 'Shimoli-sharq',
+    label: {
+      en: 'Northeast',
+      uz: 'Shimoli-sharq',
+      ru: 'Северо-восток',
+    },
     catalogRegionId: 'fergana',
   },
   {
     id: 'uz-west-central',
-    labelEn: 'Bukhara & west-central',
-    labelUz: 'Buxoro va markaziy-gʻarb',
+    label: {
+      en: 'Bukhara & west-central',
+      uz: "Buxoro va markaziy-g'arb",
+      ru: 'Бухара и западно-центральный регион',
+    },
     catalogRegionId: 'bukhara',
   },
   {
     id: 'uz-east-tip',
-    labelEn: 'Eastern border',
-    labelUz: 'Sharqiy chegara',
+    label: {
+      en: 'Eastern border',
+      uz: 'Sharqiy chegara',
+      ru: 'Восточная граница',
+    },
     catalogRegionId: 'fergana',
   },
   {
     id: 'uz-east-mid',
-    labelEn: 'East-central detail',
-    labelUz: 'Sharqiy-markaziy',
+    label: {
+      en: 'East-central detail',
+      uz: 'Sharqiy-markaziy',
+      ru: 'Деталь восточно-центрального региона',
+    },
     catalogRegionId: 'other',
   },
 ]
@@ -97,7 +143,7 @@ if (pathList.length !== DEFS.length) {
   console.warn(`[uzbekistanMap] expected ${DEFS.length} paths, got ${pathList.length}`)
 }
 
-/** @type {{ id: string; labelEn: string; labelUz: string; path: string; catalogRegionId: string }[]} */
+/** @type {{ id: string; label: { en: string; uz: string; ru: string }; path: string; catalogRegionId: string }[]} */
 export const UZ_REGIONS = DEFS.map((row, i) => ({
   ...row,
   path: pathList[i] ?? '',

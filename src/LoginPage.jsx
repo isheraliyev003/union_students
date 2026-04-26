@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom'
 import AuthCard from './auth/AuthCard.jsx'
 import ScrollProgressRail from './components/ScrollProgressRail.jsx'
+import { useI18n } from './i18n.jsx'
 
 /** Login page background — decorative only. */
 const LOGIN_BG =
   'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrzH7M3VXSqxkoVdRRBYp6TbpWUK9tXsXY38mR64H7fXJEhnOOQZ1jqj8&s=10'
 
 export default function LoginPage() {
+  const { t } = useI18n()
+
   return (
     <div className="relative flex min-h-dvh flex-col overflow-x-hidden">
       <ScrollProgressRail />
@@ -26,7 +29,7 @@ export default function LoginPage() {
             to="/"
             className="self-start text-sm font-semibold text-white/95 drop-shadow-md transition hover:text-amber-100 hover:underline"
           >
-            ← Back to home
+            ← {t('loginBack', 'Back to home')}
           </Link>
           <AuthCard />
         </div>

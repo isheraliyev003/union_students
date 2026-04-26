@@ -12,6 +12,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useI18n } from '../i18n.jsx'
 
 const MotionLink = motion.create(Link)
 
@@ -110,6 +111,7 @@ const faq = [
 
 export default function HomeMoreSections() {
   const reduceMotion = useReducedMotion()
+  const { language } = useI18n()
   const [tab, setTab] = useState(0)
   const [openFaq, setOpenFaq] = useState(null)
   const statsHeadingId = useId()
@@ -136,13 +138,13 @@ export default function HomeMoreSections() {
               id={statsHeadingId}
               className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600 dark:text-violet-400"
             >
-              At a glance
+              {language === 'uz' ? 'Qisqacha' : language === 'ru' ? 'Кратко' : 'At a glance'}
             </motion.p>
             <motion.h2
               variants={fadeUp}
               className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl"
             >
-              Built for exploration
+              {language === 'uz' ? "O'rganish uchun yaratilgan" : language === 'ru' ? 'Создано для исследования' : 'Built for exploration'}
             </motion.h2>
           </motion.div>
           <motion.ul
@@ -180,10 +182,14 @@ export default function HomeMoreSections() {
             className="mx-auto max-w-3xl text-center"
           >
             <motion.p variants={fadeUp} id={spotlightId} className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600 dark:text-violet-400">
-              Interactive
+              {language === 'uz' ? 'Interaktiv' : language === 'ru' ? 'Интерактив' : 'Interactive'}
             </motion.p>
             <motion.h2 variants={fadeUp} className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
-              Pick a lens — content updates in place
+              {language === 'uz'
+                ? 'Nuqtayi nazarni tanlang - kontent shu joyda yangilanadi'
+                : language === 'ru'
+                  ? 'Выберите ракурс - контент обновляется на месте'
+                  : 'Pick a lens - content updates in place'}
             </motion.h2>
           </motion.div>
 
@@ -259,13 +265,17 @@ export default function HomeMoreSections() {
             className="max-w-2xl"
           >
             <motion.p variants={fadeUp} id={bentoId} className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-600 dark:text-violet-400">
-              Surfaces
+              {language === 'uz' ? 'Sahifalar' : language === 'ru' ? 'Поверхности' : 'Surfaces'}
             </motion.p>
             <motion.h2 variants={fadeUp} className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
-              Bento grid — hover, tap, and go
+              {language === 'uz' ? 'Bento grid - hover, tap va kirish' : language === 'ru' ? 'Bento-сетка - наведи, нажми и перейди' : 'Bento grid - hover, tap, and go'}
             </motion.h2>
             <motion.p variants={fadeUp} className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
-              Each tile is a real route in this demo. Motion highlights affordance without getting in the way.
+              {language === 'uz'
+                ? "Har bir tile bu demodagi haqiqiy route. Animatsiya foydalanishni osonlashtiradi."
+                : language === 'ru'
+                  ? 'Каждая плитка - реальный маршрут в демо. Анимация подчеркивает интерактивность.'
+                  : 'Each tile is a real route in this demo. Motion highlights affordance without getting in the way.'}
             </motion.p>
           </motion.div>
 
@@ -294,7 +304,7 @@ export default function HomeMoreSections() {
                   <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-50">{cell.title}</h3>
                   <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{cell.text}</p>
                   <span className="mt-5 text-xs font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400">
-                    Open
+                    {language === 'uz' ? 'Ochish' : language === 'ru' ? 'Открыть' : 'Open'}
                   </span>
                 </MotionLink>
               )
@@ -315,7 +325,7 @@ export default function HomeMoreSections() {
               FAQ
             </motion.p>
             <motion.h2 variants={fadeUp} className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
-              Quick answers
+              {language === 'uz' ? 'Tez javoblar' : language === 'ru' ? 'Быстрые ответы' : 'Quick answers'}
             </motion.h2>
           </motion.div>
 
@@ -383,9 +393,15 @@ export default function HomeMoreSections() {
               transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             />
           ) : null}
-          <h2 className="relative text-2xl font-bold tracking-tight text-white sm:text-3xl">Ready when you are</h2>
+          <h2 className="relative text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            {language === 'uz' ? 'Tayyor bo‘lsangiz boshlang' : language === 'ru' ? 'Готово, когда вы готовы' : 'Ready when you are'}
+          </h2>
           <p className="relative mx-auto mt-3 max-w-lg text-sm leading-relaxed text-violet-100 sm:text-base">
-            Jump into universities, skim collections, or read the latest — each route keeps the same motion vocabulary.
+            {language === 'uz'
+              ? "Universitetlar, kolleksiyalar yoki yangiliklarga o'ting - har route bir xil motion uslubida."
+              : language === 'ru'
+                ? 'Переходите к университетам, коллекциям или новостям - везде единый motion-стиль.'
+                : 'Jump into universities, skim collections, or read the latest - each route keeps the same motion vocabulary.'}
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
             <MotionLink

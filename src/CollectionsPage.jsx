@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
 import { COLLECTION_CATEGORIES, COLLECTION_PRODUCTS, COLLECTION_TAGS } from './data/collectionsData.js'
+import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 const SORTS = [
@@ -52,6 +53,7 @@ const heroLines = ['Curated for campus rhythm.', 'Demo catalog — swap in your 
 
 export default function CollectionsPage() {
   const reduceMotion = useReducedMotion()
+  const { language, tl } = useI18n()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
@@ -127,7 +129,7 @@ export default function CollectionsPage() {
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--col-line)] bg-[var(--col-surface-strong)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--col-muted)]"
                 >
                   <Wand2 className="h-3.5 w-3.5 text-[var(--col-accent)]" aria-hidden />
-                  Union lab
+                    {language === 'uz' ? 'Union laboratoriyasi' : language === 'ru' ? 'Лаборатория Union' : 'Union lab'}
                 </motion.div>
 
                 <h1 className="col-lab-display mt-6 text-[clamp(2.75rem,9vw,4.25rem)] font-semibold leading-[0.95] tracking-tight">
@@ -137,7 +139,7 @@ export default function CollectionsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    Collections
+                    {language === 'uz' ? 'Kolleksiyalar' : language === 'ru' ? 'Коллекции' : 'Collections'}
                   </motion.span>
                   <motion.span
                     className="col-lab-display mt-3 block text-[clamp(1.15rem,3.8vw,1.55rem)] font-normal italic leading-snug text-[var(--col-muted)]"
@@ -145,7 +147,11 @@ export default function CollectionsPage() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.28, duration: 0.6 }}
                   >
-                    A living wall of objects — filter by mood, not just category.
+                    {language === 'uz'
+                      ? "Buyumlarning jonli devori - faqat kategoriya emas, kayfiyat bo'yicha filtrlang."
+                      : language === 'ru'
+                        ? 'Живая витрина объектов - фильтруйте не только по категории, но и по настроению.'
+                        : 'A living wall of objects - filter by mood, not just category.'}
                   </motion.span>
                 </h1>
 
@@ -223,15 +229,19 @@ export default function CollectionsPage() {
                     transition={{ delay: 0.35 + i * 0.08, duration: 0.45 }}
                     className="flex items-center justify-between rounded-xl border border-[var(--col-line)] bg-[var(--col-surface)] px-4 py-3"
                   >
-                    <span className="text-sm font-medium">{c.label}</span>
+                    <span className="text-sm font-medium">{tl(c.label)}</span>
                     <span className="font-mono text-xs text-[var(--col-muted)]">
-                      {COLLECTION_PRODUCTS.filter((p) => p.category === c.id).length} pcs
+                      {COLLECTION_PRODUCTS.filter((p) => p.category === c.id).length} {language === 'uz' ? 'dona' : language === 'ru' ? 'шт' : 'pcs'}
                     </span>
                   </motion.div>
                 ))}
               </div>
               <p className="relative mt-6 text-xs leading-relaxed text-[var(--col-muted)]">
-                Tip: combine tags with search — the grid reshuffles with a spring, not a hard cut.
+                {language === 'uz'
+                  ? "Maslahat: teglarni qidiruv bilan birga ishlating - grid keskin emas, silliq yangilanadi."
+                  : language === 'ru'
+                    ? 'Совет: комбинируйте теги и поиск - сетка перестраивается плавно.'
+                    : 'Tip: combine tags with search - the grid reshuffles with a spring, not a hard cut.'}
               </p>
             </motion.div>
           </section>
@@ -264,7 +274,11 @@ export default function CollectionsPage() {
                         </div>
                         <p className="col-lab-display mt-2 text-xl font-semibold tracking-tight sm:text-2xl">Tune the shelf</p>
                         <p className="mt-1 max-w-md text-xs leading-relaxed text-[var(--col-muted)]">
-                          Search, pick a world, then tag the vibe — order is on the rail.
+                          {language === 'uz'
+                            ? "Qidiring, bo'lim tanlang, keyin teg qo'ying - tartiblash o'ng tomonda."
+                            : language === 'ru'
+                              ? 'Ищите, выбирайте раздел, затем теги - сортировка справа.'
+                              : 'Search, pick a world, then tag the vibe - order is on the rail.'}
                         </p>
                       </div>
                       <motion.div
@@ -311,7 +325,13 @@ export default function CollectionsPage() {
                             onChange={(e) => setQuery(e.target.value)}
                             onFocus={() => setSearchFocused(true)}
                             onBlur={() => setSearchFocused(false)}
-                            placeholder="Search name, tag, or category…"
+                            placeholder={
+                              language === 'uz'
+                                ? "Nomi, tegi yoki kategoriyani qidiring..."
+                                : language === 'ru'
+                                  ? 'Поиск по названию, тегу или категории...'
+                                  : 'Search name, tag, or category...'
+                            }
                             className="w-full rounded-[1.25rem] border-0 bg-transparent py-3.5 pl-11 pr-4 text-sm text-[var(--col-ink)] outline-none ring-0 placeholder:text-[var(--col-muted)]"
                           />
                         </div>
@@ -332,7 +352,7 @@ export default function CollectionsPage() {
                           {COLLECTION_CATEGORIES.map((c) => (
                             <div key={c.id} className="snap-start lg:snap-none">
                               <CuratorChip active={category === c.id} onClick={() => setCategory(c.id)} layoutId="col-cat-pill">
-                                {c.label}
+                                {tl(c.label)}
                               </CuratorChip>
                             </div>
                           ))}
@@ -432,8 +452,16 @@ export default function CollectionsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mx-auto mt-20 max-w-md rounded-[1.75rem] border border-[var(--col-line)] bg-[var(--col-surface)] px-8 py-14 text-center shadow-[0_16px_48px_-24px_var(--col-shadow)] backdrop-blur-md"
             >
-              <p className="col-lab-display text-xl font-semibold text-[var(--col-ink)]">No matches in this edit</p>
-              <p className="mt-3 text-sm text-[var(--col-muted)]">Loosen tags or clear search to bring pieces back.</p>
+              <p className="col-lab-display text-xl font-semibold text-[var(--col-ink)]">
+                {language === 'uz' ? "Bu ko'rinishda mos natija yo'q" : language === 'ru' ? 'В этой выборке нет совпадений' : 'No matches in this edit'}
+              </p>
+              <p className="mt-3 text-sm text-[var(--col-muted)]">
+                {language === 'uz'
+                  ? "Teglarni kamaytiring yoki qidiruvni tozalang."
+                  : language === 'ru'
+                    ? 'Ослабьте теги или очистите поиск.'
+                    : 'Loosen tags or clear search to bring pieces back.'}
+              </p>
               <motion.button
                 type="button"
                 className="mt-8 rounded-full bg-gradient-to-r from-[var(--col-accent)] to-[var(--col-secondary)] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--col-accent-dim)]"
@@ -445,7 +473,7 @@ export default function CollectionsPage() {
                   setActiveTags(new Set())
                 }}
               >
-                Reset filters
+                {language === 'uz' ? 'Filtrlarni tiklash' : language === 'ru' ? 'Сбросить фильтры' : 'Reset filters'}
               </motion.button>
             </motion.div>
           ) : null}

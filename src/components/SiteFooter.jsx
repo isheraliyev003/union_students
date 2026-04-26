@@ -2,14 +2,7 @@ import { useMemo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { WandSparkles } from 'lucide-react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-
-const exploreLinks = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/universities', label: 'Universities' },
-  { to: '/collections', label: 'Collections' },
-  { to: '/news', label: 'News' },
-  { to: '/about', label: 'About' },
-]
+import { useI18n } from '../i18n.jsx'
 
 function resolveFooterKey(pathname) {
   if (pathname === '/') return 'home'
@@ -158,10 +151,18 @@ const THEMES = {
 export default function SiteFooter() {
   const reduceMotion = useReducedMotion()
   const { pathname } = useLocation()
+  const { t: tt } = useI18n()
   const key = useMemo(() => resolveFooterKey(pathname), [pathname])
-  const t = THEMES[key] ?? THEMES.home
+  const theme = THEMES[key] ?? THEMES.home
 
-  const navClass = ({ isActive }) => `${t.navBase} ${isActive ? t.navActive : ''}`
+  const navClass = ({ isActive }) => `${theme.navBase} ${isActive ? theme.navActive : ''}`
+  const translatedExplore = [
+    { to: '/', label: tt('navHome', 'Home'), end: true },
+    { to: '/universities', label: tt('navUniversities', 'Universities') },
+    { to: '/collections', label: tt('navCollections', 'Collections') },
+    { to: '/news', label: tt('navNews', 'News') },
+    { to: '/about', label: tt('navAbout', 'About') },
+  ]
 
   return (
     <motion.footer
@@ -171,32 +172,32 @@ export default function SiteFooter() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.12 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={`relative z-10 border-t pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-12 ${t.root}`}
+      className={`relative z-10 border-t pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-12 ${theme.root}`}
     >
       <div
         aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r ${t.gradient}`}
+        className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r ${theme.gradient}`}
       />
 
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-10">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8 lg:gap-y-10">
           <div className="max-w-sm lg:col-span-5">
-            <Link to="/" className={`inline-flex items-center gap-2 ${t.brand}`}>
-              <WandSparkles className={`h-4 w-4 shrink-0 ${t.icon}`} aria-hidden />
-              Union Students Studio
+            <Link to="/" className={`inline-flex items-center gap-2 ${theme.brand}`}>
+              <WandSparkles className={`h-4 w-4 shrink-0 ${theme.icon}`} aria-hidden />
+              {tt('brandName', 'Union Students Studio')}
             </Link>
-            <p className={`mt-3 ${t.blurb}`}>
-              Demo surfaces for motion, maps, and catalogs — swap in your brand and content.
+            <p className={`mt-3 ${theme.blurb}`}>
+              {tt('footerBlurb', 'Demo surfaces for motion, maps, and catalogs - swap in your brand and content.')}
             </p>
-            <p className={`mt-4 ${t.mono}`}>React · Vite · Tailwind · Framer Motion</p>
+            <p className={`mt-4 ${theme.mono}`}>{tt('footerStack', 'React · Vite · Tailwind · Framer Motion')}</p>
           </div>
 
           <nav aria-labelledby="footer-explore-heading" className="min-w-0 lg:col-span-3">
-            <h2 id="footer-explore-heading" className={`text-xs font-semibold uppercase tracking-[0.22em] ${t.h2}`}>
-              Explore
+            <h2 id="footer-explore-heading" className={`text-xs font-semibold uppercase tracking-[0.22em] ${theme.h2}`}>
+              {tt('footerExplore', 'Explore')}
             </h2>
             <ul className="mt-4 flex flex-col gap-2.5">
-              {exploreLinks.map(({ to, label, end }) => (
+              {translatedExplore.map(({ to, label, end }) => (
                 <li key={to}>
                   <NavLink to={to} end={end} className={navClass}>
                     {label}
@@ -207,38 +208,41 @@ export default function SiteFooter() {
           </nav>
 
           <nav aria-labelledby="footer-account-heading" className="min-w-0 lg:col-span-2">
-            <h2 id="footer-account-heading" className={`text-xs font-semibold uppercase tracking-[0.22em] ${t.h2}`}>
-              Account
+            <h2 id="footer-account-heading" className={`text-xs font-semibold uppercase tracking-[0.22em] ${theme.h2}`}>
+              {tt('footerAccount', 'Account')}
             </h2>
             <ul className="mt-4 flex flex-col gap-2.5">
               <li>
                 <NavLink to="/login" className={navClass}>
-                  Sign in
+                  {tt('footerSignIn', 'Sign in')}
                 </NavLink>
               </li>
             </ul>
           </nav>
 
           <div className="min-w-0 lg:col-span-2">
-            <h2 className={`text-xs font-semibold uppercase tracking-[0.22em] ${t.h2}`}>Contact</h2>
-            <a href="mailto:hello@union.studio" className={`mt-4 inline-block ${t.contact}`}>
+            <h2 className={`text-xs font-semibold uppercase tracking-[0.22em] ${theme.h2}`}>{tt('footerContact', 'Contact')}</h2>
+            <a href="mailto:hello@union.studio" className={`mt-4 inline-block ${theme.contact}`}>
               hello@union.studio
             </a>
-            <p className={`mt-4 ${t.hint}`}>For partnerships or feedback on this demo build.</p>
+            <p className={`mt-4 ${theme.hint}`}>{tt('footerHint', 'For partnerships or feedback on this demo build.')}</p>
           </div>
         </div>
 
-        <div className={`mt-12 flex flex-col gap-6 border-t pt-8 lg:flex-row lg:items-start lg:justify-between lg:gap-8 ${t.bottom}`}>
+        <div className={`mt-12 flex flex-col gap-6 border-t pt-8 lg:flex-row lg:items-start lg:justify-between lg:gap-8 ${theme.bottom}`}>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-1">
-            <p className={`text-xs ${t.muted}`}>© {new Date().getFullYear()} Union Students Studio. All rights reserved.</p>
-            <p className={`text-xs ${t.muted}`}>
-              <Link to="/about" className={`underline-offset-2 transition hover:underline ${t.termsHover}`}>
-                Terms & privacy (demo)
+            <p className={`text-xs ${theme.muted}`}>© {new Date().getFullYear()} {tt('brandName', 'Union Students Studio')}. {tt('footerRights', 'All rights reserved.')}</p>
+            <p className={`text-xs ${theme.muted}`}>
+              <Link to="/about" className={`underline-offset-2 transition hover:underline ${theme.termsHover}`}>
+                {tt('footerTerms', 'Terms & privacy (demo)')}
               </Link>
             </p>
           </div>
-          <p className={`max-w-xl text-xs leading-relaxed ${t.muted}`}>
-            Cinematic preview — not affiliated with any real institution or store. Placeholder copy and imagery only.
+          <p className={`max-w-xl text-xs leading-relaxed ${theme.muted}`}>
+            {tt(
+              'footerDisclaimer',
+              'Cinematic preview - not affiliated with any real institution or store. Placeholder copy and imagery only.',
+            )}
           </p>
         </div>
       </div>
