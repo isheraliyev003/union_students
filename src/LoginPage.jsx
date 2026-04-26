@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import AuthCard from './auth/AuthCard.jsx'
 import ScrollProgressRail from './components/ScrollProgressRail.jsx'
-import SiteFooter from './components/SiteFooter.jsx'
 
 /** Login page background — decorative only. */
 const LOGIN_BG =
@@ -31,10 +30,6 @@ export default function LoginPage() {
           </Link>
           <AuthCard />
         </div>
-      </div>
-
-      <div className="relative z-10 w-full">
-        <SiteFooter />
       </div>
     </div>
   )
