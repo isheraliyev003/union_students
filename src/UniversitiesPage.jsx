@@ -1,26 +1,60 @@
-import { useLayoutEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Compass, Search } from 'lucide-react'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
-import { REGIONS, UNIVERSITIES_CATALOG } from './data/universitiesCatalog.js'
+import { getRegions, getUniversities } from './api/catalogApi.js'
 import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
-
-function regionFromSearchParams(searchParams) {
-  const r = searchParams.get('region')
-  if (r && REGIONS.some((x) => x.id === r)) return r
-  return 'all'
-}
 
 export default function UniversitiesPage() {
   const { language } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
   const [query, setQuery] = useState('')
+  const [apiRegions, setApiRegions] = useState([])
+  const [universities, setUniversities] = useState([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState('')
 
-  const region = regionFromSearchParams(searchParams)
+  const regionsUi = useMemo(() => {
+    const all = { id: 'all', label: 'All regions' }
+    if (!apiRegions.length) return [all]
+    return [all, ...apiRegions.map((r) => ({ id: r.slug, label: r.label }))]
+  }, [apiRegions])
+
+  const validRegionSet = useMemo(
+    () => new Set(regionsUi.map((r) => r.id)),
+    [regionsUi],
+  )
+
+  const rawRegion = searchParams.get('region') || 'all'
+  const region = useMemo(() => {
+    if (catalogLoading) return rawRegion
+    return validRegionSet.has(rawRegion) ? rawRegion : 'all'
+  }, [catalogLoading, validRegionSet, rawRegion])
+
+  useEffect(() => {
+    let c = true
+    setCatalogLoading(true)
+    setCatalogError('')
+    Promise.all([getRegions(), getUniversities()])
+      .then(([regions, unis]) => {
+        if (!c) return
+        setApiRegions(regions)
+        setUniversities(unis)
+        setCatalogLoading(false)
+      })
+      .catch(() => {
+        if (!c) return
+        setCatalogError('Could not load the catalog. Is the API running?')
+        setCatalogLoading(false)
+      })
+    return () => {
+      c = false
+    }
+  }, [])
 
   const setRegionFilter = (id) => {
     if (id === 'all') setSearchParams({}, { replace: true })
@@ -33,13 +67,14 @@ export default function UniversitiesPage() {
   }, [isDark])
 
   const filtered = useMemo(() => {
+    if (catalogLoading) return []
     const q = query.trim().toLowerCase()
-    return UNIVERSITIES_CATALOG.filter((u) => {
+    return universities.filter((u) => {
       const matchRegion = region === 'all' || u.region === region
       const matchName = !q || u.name.toLowerCase().includes(q) || u.shortDetail.toLowerCase().includes(q)
       return matchRegion && matchName
     })
-  }, [query, region])
+  }, [query, region, universities, catalogLoading])
 
   const regionLabel = (r) => {
     if (language === 'uz') {
@@ -106,7 +141,7 @@ export default function UniversitiesPage() {
             </div>
 
             <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 lg:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {REGIONS.map((r) => {
+              {regionsUi.map((r) => {
                 const active = region === r.id
                 return (
                   <button
@@ -120,7 +155,7 @@ export default function UniversitiesPage() {
                     }`}
                   >
                     <span className="font-mono text-[10px] text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]">
-                      {String(REGIONS.indexOf(r)).padStart(2, '0')}
+                      {String(regionsUi.indexOf(r)).padStart(2, '0')}
                     </span>
                     <span className="mt-0.5 block whitespace-nowrap">{regionLabel(r)}</span>
                   </button>
@@ -132,7 +167,7 @@ export default function UniversitiesPage() {
               aria-label={language === 'uz' ? "Hudud bo'yicha filter" : language === 'ru' ? 'Фильтр по региону' : 'Filter by region'}
               className="relative hidden border-l-2 border-[var(--uni-line)] pl-1 lg:block"
             >
-              {REGIONS.map((r) => {
+              {regionsUi.map((r) => {
                 const active = region === r.id
                 return (
                   <button
@@ -155,7 +190,7 @@ export default function UniversitiesPage() {
                     <span
                       className={`font-mono text-[11px] tabular-nums ${active ? 'text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]' : 'opacity-50'}`}
                     >
-                      {String(REGIONS.indexOf(r)).padStart(2, '0')}
+                      {String(regionsUi.indexOf(r)).padStart(2, '0')}
                     </span>
                     <span className={`text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{regionLabel(r)}</span>
                   </button>
@@ -190,12 +225,18 @@ export default function UniversitiesPage() {
               </h1>
               <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--uni-muted)]">
                 {language === 'uz'
-                  ? "Hududlar bo'yicha universitetlarni o'rganish uchun yagona maydon. Demo yozuvlar kiritilgan; ishlab chiqishda o'z API'ingiz bilan almashtiring."
+                  ? "Hududlar bo‘yicha universitetlarni o‘rganish uchun yagona maydon. Ma’lumotlar serverdan olinadi."
                   : language === 'ru'
-                    ? 'Единая поверхность для изучения университетов по регионам. Здесь демо-данные; при запуске замените на свой API.'
-                    : 'A single surface to wander institutions by region - part map room, part reading room. Curated demo entries; swap in your own API when you ship.'}
+                    ? 'Единая поверхность для изучения университетов по регионам. Данные приходят с сервера.'
+                    : 'A single surface to wander institutions by region. Data is loaded from the API.'}
               </p>
             </motion.header>
+
+            {catalogError ? (
+              <p className="mt-6 rounded-lg border border-red-300/80 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200">
+                {catalogError}
+              </p>
+            ) : null}
 
             <motion.div
               initial={{ opacity: 0, y: 18 }}
@@ -227,20 +268,26 @@ export default function UniversitiesPage() {
             </motion.div>
 
             <motion.p
-              key={`${region}-${query}-${filtered.length}`}
+              key={`${region}-${query}-${filtered.length}-${catalogLoading}`}
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
               className="mt-5 font-mono text-[12px] tracking-tight text-[var(--uni-muted)]"
             >
               <span className="text-[var(--uni-teal-bright)] dark:text-[var(--uni-teal)]">
-                {String(filtered.length).padStart(2, '0')}
+                {String(catalogLoading ? 0 : filtered.length).padStart(2, '0')}
               </span>
               &nbsp;·&nbsp;
-              {language === 'uz'
-                ? `${filtered.length === 1 ? 'moslik' : 'mosliklar'} ko‘rinmoqda`
-                : language === 'ru'
-                  ? `${filtered.length === 1 ? 'совпадение' : 'совпадений'} в выдаче`
-                  : `${filtered.length === 1 ? 'match' : 'matches'} in view`}
+              {catalogLoading
+                ? language === 'uz'
+                  ? 'Yuklanmoqda'
+                  : language === 'ru'
+                    ? 'Загрузка'
+                    : 'Loading'
+                : language === 'uz'
+                  ? `${filtered.length === 1 ? 'moslik' : 'mosliklar'} ko‘rinmoqda`
+                  : language === 'ru'
+                    ? `${filtered.length === 1 ? 'совпадение' : 'совпадений'} в выдаче`
+                    : `${filtered.length === 1 ? 'match' : 'matches'} in view`}
             </motion.p>
 
             <motion.div layout className="mt-10 grid grid-cols-12 gap-5 md:gap-6">
@@ -302,7 +349,12 @@ export default function UniversitiesPage() {
                           transition={{ type: 'spring', stiffness: 280, damping: 22 }}
                         />
                         <span className="absolute bottom-3 left-3 z-[2] max-w-[85%] rounded-sm border border-white/30 bg-[var(--uni-ink)]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm dark:border-white/15 dark:bg-black/70">
-                          {regionLabel(REGIONS.find((x) => x.id === u.region) ?? { id: u.region, label: u.region })}
+                          {regionLabel(
+                            regionsUi.find((x) => x.id === u.region) ?? {
+                              id: u.region,
+                              label: u.regionLabel,
+                            },
+                          )}
                         </span>
                       </div>
                       <div className={`relative flex flex-1 flex-col justify-center p-5 ${isWide ? 'xl:py-8 xl:pl-8 xl:pr-10' : ''}`}>

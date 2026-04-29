@@ -90,33 +90,53 @@ export function buildProductOptions(index, category, imageCount) {
 }
 
 /**
- * @param {{ price: number, options?: ProductOptionGroup[] } | null} product
+ * @param {{ price: number, optionGroups?: ProductOptionGroup[] } | null} product
  * @param {Record<string, string>} selections optionId -> valueId
  */
 export function computeVariantPrice(product, selections) {
   if (!product) return 0
-  let total = product.price
-  const groups = product.options ?? []
+  let total = Number(product.price) || 0
+  const groups = product.optionGroups ?? []
   for (const g of groups) {
+    if (!g?.values?.length) continue
     const vid = selections[g.id]
     const v = g.values.find((x) => x.id === vid)
-    if (v && typeof v.priceDelta === 'number') total += v.priceDelta
+    if (!v) continue
+    const d = v.priceDelta
+    const n = typeof d === 'number' && !Number.isNaN(d) ? d : Number(d)
+    if (Number.isFinite(n)) total += n
   }
   return total
 }
 
 /**
- * @param {ProductOptionGroup[]} options
+ * @param {ProductOptionGroup[]} optionGroups
  * @returns {Record<string, string>}
  */
-export function defaultOptionSelections(options) {
+export function defaultOptionSelections(optionGroups) {
   /** @type {Record<string, string>} */
   const s = {}
-  for (const g of options) {
+  for (const g of optionGroups) {
     if (g.values?.length) s[g.id] = g.values[0].id
   }
   return s
 }
+
+/** Matches union_students_back catalog university slugs for demo filtering. */
+export const PRODUCT_UNIVERSITY_SLUGS = [
+  'tuit',
+  'nuu',
+  'wiut',
+  'tsul',
+  'medic',
+  'sam-poly',
+  'sam-uni',
+  'bukh-inno',
+  'bukh-ped',
+  'ferg-poly',
+  'andijan-med',
+  'other',
+]
 
 const NAMES = [
   ['Chromatic notebook', 'study'],
@@ -153,6 +173,7 @@ export const COLLECTION_PRODUCTS = NAMES.map(([name, category], i) => {
     name,
     category,
     tag,
+    universitySlug: PRODUCT_UNIVERSITY_SLUGS[i % PRODUCT_UNIVERSITY_SLUGS.length],
     price,
     featuredScore: (i * 13 + 5) % 100,
     /** First frame — used on collection cards */
@@ -161,8 +182,8 @@ export const COLLECTION_PRODUCTS = NAMES.map(([name, category], i) => {
     imageLg: images[0],
     /** Full gallery for the product page (order = display order) */
     images,
-    /** Variant axes — size / color / finish; drives PDP UI and demo pricing */
-    options: buildProductOptions(i, category, imgCount),
+    /** Axes (Color, Size, …) for the picker — no per-value pricing; bundles own price/images */
+    optionGroups: buildProductOptions(i, category, imgCount),
   }
 })
 
@@ -175,6 +196,40 @@ export function getProductGalleryImages(product) {
   if (product.imageLg) return [product.imageLg]
   if (product.image) return [product.image]
   return []
+}
+
+/**
+ * API store products: each bundle is a full combination with its own price and images.
+ * @param {{ variants?: Array<{ id?: string, selection: Record<string, string> }> } | null} product
+ * @param {Record<string, string>} selections
+ */
+export function findBundleBySelections(product, selections) {
+  if (!product?.variants?.length) return null
+  for (const b of product.variants) {
+    const sel = b.selection
+    if (!sel || typeof sel !== 'object') continue
+    const keys = new Set([...Object.keys(sel), ...Object.keys(selections)])
+    let match = true
+    for (const k of keys) {
+      if (sel[k] !== selections[k]) {
+        match = false
+        break
+      }
+    }
+    if (match) return b
+  }
+  return null
+}
+
+/**
+ * @param {Parameters<findBundleBySelections>[0]} product
+ * @param {Record<string, string>} selections
+ */
+export function resolveActiveBundle(product, selections) {
+  if (!product?.variants?.length) return null
+  const exact = findBundleBySelections(product, selections)
+  if (exact) return exact
+  return product.variants[0] ?? null
 }
 
 /** @param {string} id */

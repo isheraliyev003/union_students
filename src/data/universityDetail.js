@@ -1,4 +1,4 @@
-import { REGIONS, UNIVERSITIES_CATALOG } from './universitiesCatalog.js'
+import { getUniversityBySlug } from '../api/catalogApi.js'
 
 export const UNIVERSITY_HERO_VIDEOS = [
   'https://media.istockphoto.com/id/1364131749/video/female-junior-high-teacher-supervising-students-taking-exam-at-desks.mp4?s=mp4-640x640-is&k=20&c=nJKmCkCm7uhZEg9wUacaMtfUQpyHoHNGQ-AhyiABzg8=',
@@ -6,34 +6,37 @@ export const UNIVERSITY_HERO_VIDEOS = [
   '/banner.mp4',
 ]
 
-/** @returns {object | null} */
-export function getUniversityDetail(id) {
-  const idx = UNIVERSITIES_CATALOG.findIndex((u) => u.id === id)
-  if (idx === -1) return null
-  const u = UNIVERSITIES_CATALOG[idx]
-  const regionLabel = REGIONS.find((r) => r.id === u.region)?.label ?? u.region
+function hashString(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i += 1) {
+    h = (h * 31 + s.charCodeAt(i)) | 0
+  }
+  return Math.abs(h)
+}
 
-  const shopProductTeasers = [
-    {
-      name: { en: 'Studio notebook', uz: 'Studio daftari', ru: 'Блокнот Studio' },
-      price: 18,
-      img: `https://picsum.photos/seed/${u.id}shop1/240/240`,
-    },
-    {
-      name: { en: 'Lab kit pouch', uz: 'Laboratoriya to‘plam sumkasi', ru: 'Чехол для lab-набора' },
-      price: 42,
-      img: `https://picsum.photos/seed/${u.id}shop2/240/240`,
-    },
-    {
-      name: { en: 'Union thermos', uz: 'Union termos', ru: 'Термос Union' },
-      price: 28,
-      img: `https://picsum.photos/seed/${u.id}shop3/240/240`,
-    },
-  ]
+/**
+ * Build rich detail from API catalog row (same fields as /universities/:slug).
+ * @param {object} u
+ * @param {string} u.id
+ * @param {string} u.name
+ * @param {string} u.shortDetail
+ * @param {string} u.image
+ * @param {string} u.region
+ * @param {string} u.regionLabel
+ * @returns {object | null}
+ */
+export function buildUniversityDetailView(u) {
+  if (!u) return null
+  const id = u.id
+  const idx = hashString(String(id)) % 1000
 
   return {
-    ...u,
-    regionLabel,
+    id: u.id,
+    name: u.name,
+    region: u.region,
+    shortDetail: u.shortDetail,
+    image: u.image,
+    regionLabel: u.regionLabel,
     heroVideo: UNIVERSITY_HERO_VIDEOS[idx % UNIVERSITY_HERO_VIDEOS.length],
     tagline: u.shortDetail,
     paragraphs: [
@@ -55,19 +58,19 @@ export function getUniversityDetail(id) {
     ],
     stats: [
       { label: { en: 'Schools & faculties', uz: 'Maktablar va fakultetlar', ru: 'Школы и факультеты' }, value: `${6 + (idx % 4)}` },
-      { label: { en: 'Labs & studios', uz: 'Laboratoriyalar va studiyalar', ru: 'Лаборатории и студии' }, value: `${22 + idx * 2}` },
-      { label: { en: 'Industry partners', uz: 'Sanoat hamkorlari', ru: 'Индустриальные партнеры' }, value: `${35 + idx * 3}` },
-      { label: { en: 'Campus hectares', uz: 'Kampus gektarlari', ru: 'Гектары кампуса' }, value: `${(1.1 + idx * 0.08).toFixed(1)}` },
+      { label: { en: 'Labs & studios', uz: 'Laboratoriyalar va studiyalar', ru: 'Лаборатории и студии' }, value: `${22 + (idx % 200) * 2}` },
+      { label: { en: 'Industry partners', uz: 'Sanoat hamkorlari', ru: 'Индустриальные партнеры' }, value: `${35 + (idx % 200) * 3}` },
+      { label: { en: 'Campus hectares', uz: 'Kampus gektarlari', ru: 'Гектары кампуса' }, value: `${(1.1 + (idx % 50) * 0.08).toFixed(1)}` },
     ],
     shopHeadline: {
-      en: "Let's shop Union products",
-      uz: 'Union mahsulotlarini tanlang',
-      ru: 'Покупайте товары Union',
+      en: 'Campus collections',
+      uz: 'Kampus kolleksiyalari',
+      ru: 'Коллекции кампуса',
     },
     shopIntro: {
-      en: 'Campus smart-lockers, limited drops, and bundles built with your timetable in mind — every purchase helps fund student maker grants.',
-      uz: 'Kampus smart-locker, cheklangan drop va jadvalga mos to‘plamlar — har bir xarid talabalar grantini qo‘llab-quvvatlaydi.',
-      ru: 'Смарт-локеры кампуса, лимитированные дропы и наборы под расписание — каждая покупка поддерживает студенческие гранты.',
+      en: 'Curated drops for study, wear, and lab — open the storefront to filter by this university and explore everything in one place.',
+      uz: 'O‘qish, kiyim va laboratoriya uchun tanlangan to‘plamlar — do‘konda shu universitet bo‘yicha filtrlab barchasini ko‘ring.',
+      ru: 'Подборки для учёбы, одежды и лабораторий — откройте витрину с фильтром по этому университету.',
     },
     shopBullets: [
       {
@@ -86,6 +89,18 @@ export function getUniversityDetail(id) {
         ru: 'Удобный возврат до четвертой недели учебного периода',
       },
     ],
-    shopProductTeasers,
+  }
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<object | null>}
+ */
+export async function fetchUniversityDetailView(id) {
+  try {
+    const row = await getUniversityBySlug(id)
+    return buildUniversityDetailView(row)
+  } catch {
+    return null
   }
 }

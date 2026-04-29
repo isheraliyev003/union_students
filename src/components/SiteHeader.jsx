@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LogOut, Menu, MoonStar, Settings, SunMedium, User, WandSparkles, X } from 'lucide-react'
+import { LogOut, Menu, MoonStar, Settings, ShoppingCart, SunMedium, User, WandSparkles, X } from 'lucide-react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { readRegistered, setRegistered } from '../authSession.js'
+import { readAuthUser, readRegistered, setRegistered } from '../authSession.js'
+import { useCart } from '../CartContext.jsx'
 import { useI18n } from '../i18n.jsx'
 import ScrollProgressRail from './ScrollProgressRail.jsx'
 
@@ -28,6 +29,8 @@ export default function SiteHeader({ isDark, setIsDark }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { language, setLanguage, t } = useI18n()
+  const { cart } = useCart()
+  const cartCount = cart?.itemCount ?? 0
   const [accountOpen, setAccountOpen] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const accountWrapRef = useRef(null)
@@ -169,6 +172,30 @@ export default function SiteHeader({ isDark, setIsDark }) {
             >
               {isDark ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
             </button>
+            <Link
+              to="/cart"
+              className="site-header-icon-btn relative flex size-9 shrink-0 items-center justify-center rounded-full transition hover:scale-105 active:scale-95 sm:size-10"
+              aria-label={
+                cartCount
+                  ? t('headerCart', 'Cart') + ` (${cartCount})`
+                  : t('headerCart', 'Cart')
+              }
+            >
+              <ShoppingCart className="h-4 w-4" aria-hidden />
+              <AnimatePresence>
+                {cartCount > 0 ? (
+                  <motion.span
+                    key="badge"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="absolute -right-0.5 -top-0.5 min-h-[1.125rem] min-w-[1.125rem] rounded-full bg-gradient-to-br from-fuchsia-500 to-violet-600 px-1 text-center text-[10px] font-bold leading-tight text-white shadow-md"
+                  >
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
+            </Link>
             <div ref={accountWrapRef} className="relative">
               <button
                 type="button"
@@ -206,7 +233,9 @@ export default function SiteHeader({ isDark, setIsDark }) {
                     <p id="account-popover-title" className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {t('navAccount', 'Account')}
                     </p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">{t('accountEmailDemo', 'student@union.edu')}</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                      {readAuthUser()?.email ?? t('accountEmailDemo', 'student@union.edu')}
+                    </p>
                   </div>
                   <div className="py-1">
                     <a
@@ -308,6 +337,20 @@ export default function SiteHeader({ isDark, setIsDark }) {
                   </NavLink>
                   <NavLink to="/about" className={mobileNavLinkClass} onClick={() => setMobileNavOpen(false)}>
                     {t('navAbout', 'About Us')}
+                  </NavLink>
+                  <NavLink
+                    to="/cart"
+                    className={({ isActive }) => mobileNavLinkClass({ isActive })}
+                    onClick={() => setMobileNavOpen(false)}
+                  >
+                    <span className="flex w-full items-center justify-between">
+                      {t('headerCart', 'Cart')}
+                      {cartCount > 0 ? (
+                        <span className="rounded-full bg-violet-500/25 px-2 py-0.5 text-xs font-bold text-violet-200">
+                          {cartCount > 99 ? '99+' : cartCount}
+                        </span>
+                      ) : null}
+                    </span>
                   </NavLink>
                   <div className="px-2 pt-1">
                     <div

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { verifyDemoCredentials } from './demoUserStore'
+import { signIn, ApiError } from '../api/authApi.js'
+import { setSession } from '../authSession.js'
 import { useI18n } from '../i18n.jsx'
 import { cardVariants, staggerContainer, staggerItem } from './motion'
 
@@ -12,16 +13,35 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
   const [email, setEmail] = useState(prefilledEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     setError('')
-    const res = verifyDemoCredentials(email, password, t)
-    if (!res.ok) {
-      setError(res.error)
-      return
+    setSubmitting(true)
+    try {
+      const data = await signIn({ email, password })
+      if (data?.token) {
+        setSession({ token: data.token, user: data.user })
+      } else {
+        setSession({ user: data.user })
+      }
+      onSuccess()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          setError(t('authErrorNoAccount', 'No account found for this email.'))
+        } else if (err.status === 401) {
+          setError(t('authErrorWrongPassword', 'Incorrect password.'))
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
     }
-    onSuccess()
   }
 
   return (
@@ -80,11 +100,12 @@ export default function SignInForm({ onSuccess, onForgotPassword, prefilledEmail
         ) : null}
         <motion.button
           type="submit"
+          disabled={submitting}
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.98 }}
-          className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700"
+          className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {t('authSignIn', 'Sign in')}
+          {submitting ? t('authSigningIn', 'Signing in…') : t('authSignIn', 'Sign in')}
         </motion.button>
         <button
           type="button"

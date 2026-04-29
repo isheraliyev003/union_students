@@ -7,6 +7,8 @@ import ScrollToTop from './components/ScrollToTop.jsx'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
 import UzbekistanMapSection from './components/UzbekistanMapSection.jsx'
+import CartPage from './CartPage.jsx'
+import CheckoutPage from './CheckoutPage.jsx'
 import CollectionProductPage from './CollectionProductPage.jsx'
 import CollectionsPage from './CollectionsPage.jsx'
 import LoginPage from './LoginPage.jsx'
@@ -237,6 +239,8 @@ export default function App() {
         <Route path="/universities/:id" element={<UniversityDetailPage />} />
         <Route path="/collections" element={<CollectionsPage />} />
         <Route path="/collections/:id" element={<CollectionProductPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/news" element={<NewsPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/login" element={<LoginPage />} />

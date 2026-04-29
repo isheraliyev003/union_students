@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   AnimatePresence,
   motion,
-  useInView,
   useMotionValueEvent,
   useReducedMotion,
   useSpring,
@@ -12,9 +11,11 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  MapPin,
   Orbit,
   Package,
   Radio,
@@ -22,21 +23,33 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getStoreProductById, getStoreProducts } from './api/catalogApi.js'
+import { useCart } from './CartContext.jsx'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
 import {
   COLLECTION_CATEGORIES,
   computeVariantPrice,
   defaultOptionSelections,
-  getCollectionProductById,
   getProductGalleryImages,
-  getRelatedCollectionProducts,
+  resolveActiveBundle,
 } from './data/collectionsData.js'
+import { readAuthToken } from './authSession.js'
 import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 const EMPTY_OPTIONS = []
+
+const MotionLink = motion.create(Link)
+
+function formatCampusLabel(universitySlug) {
+  if (!universitySlug || typeof universitySlug !== 'string') return ''
+  return universitySlug
+    .split('-')
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+    .join(' ')
+}
 
 const ACCORDIONS = [
   {
@@ -58,6 +71,9 @@ const ACCORDIONS = [
 
 export default function CollectionProductPage() {
   const { language, tl } = useI18n()
+  const { addItem } = useCart()
+  const navigate = useNavigate()
+  const location = useLocation()
   const { id } = useParams()
   const reduceMotion = useReducedMotion()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
@@ -65,6 +81,12 @@ export default function CollectionProductPage() {
   const [priceLabel, setPriceLabel] = useState(0)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [selections, setSelections] = useState(() => ({}))
+  const [product, setProduct] = useState(null)
+  const [loadStatus, setLoadStatus] = useState(() => (id ? 'loading' : 'notfound'))
+  const [related, setRelated] = useState(() => [])
+  const [shareCopied, setShareCopied] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [justAddedToCart, setJustAddedToCart] = useState(false)
 
   const heroImgRef = useRef(null)
   const priceRef = useRef(null)
@@ -72,57 +94,152 @@ export default function CollectionProductPage() {
   const my = useMotionValue(0)
 
   const springPrice = useSpring(0, { stiffness: 100, damping: 24 })
-  const priceInView = useInView(priceRef, { once: true, amount: 0.5 })
 
-  const product = useMemo(() => (id ? getCollectionProductById(id) : null), [id])
   const categoryLabel = useMemo(
     () => COLLECTION_CATEGORIES.find((c) => c.id === product?.category)?.label ?? product?.category,
     [product],
   )
-  const related = useMemo(
-    () => (product ? getRelatedCollectionProducts(product.category, product.id, 8) : []),
+
+  useEffect(() => {
+    if (!id) {
+      setProduct(null)
+      setLoadStatus('notfound')
+      return
+    }
+    let cancelled = false
+    setLoadStatus('loading')
+    getStoreProductById(id)
+      .then((p) => {
+        if (cancelled) return
+        setProduct(p)
+        setLoadStatus('ok')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setProduct(null)
+        setLoadStatus('notfound')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (!product?.id) {
+      setRelated([])
+      return
+    }
+    let cancelled = false
+    getStoreProducts({
+      university: product.universitySlug,
+      excludeId: product.id,
+      limit: 8,
+      sort: 'featured',
+    })
+      .then((list) => {
+        if (cancelled) return
+        setRelated(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (cancelled) return
+        setRelated([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [product?.id, product?.universitySlug])
+  const hasBundles = useMemo(
+    () => Array.isArray(product?.variants) && product.variants.length > 0,
     [product],
   )
-  const gallery = useMemo(() => (product ? getProductGalleryImages(product) : []), [product])
-  const optionGroups = useMemo(() => product?.options ?? EMPTY_OPTIONS, [product])
-  const resolvedPrice = useMemo(
-    () => (product ? computeVariantPrice(product, selections) : 0),
-    [product, selections],
+  const optionGroups = useMemo(() => {
+    if (product?.optionGroups == null) return EMPTY_OPTIONS
+    return Array.isArray(product.optionGroups) ? product.optionGroups : EMPTY_OPTIONS
+  }, [product])
+  const activeBundle = useMemo(
+    () => (hasBundles ? resolveActiveBundle(product, selections) : null),
+    [hasBundles, product, selections],
   )
-  const prevProductIdRef = useRef(product?.id)
+  const gallery = useMemo(() => {
+    if (!product) return []
+    if (activeBundle?.images?.length) return [...activeBundle.images]
+    return getProductGalleryImages(product)
+  }, [product, activeBundle])
+  const resolvedPrice = useMemo(() => {
+    if (!product) return 0
+    if (activeBundle) return Number(activeBundle.price) || 0
+    if (optionGroups.length) {
+      return computeVariantPrice(
+        { price: product.price, optionGroups },
+        selections,
+      )
+    }
+    return Number(product.price) || 0
+  }, [product, activeBundle, optionGroups, selections])
+  const showOptionDeltas = !hasBundles
+  const canAddToCart = Boolean(hasBundles && activeBundle?.id && product?.id)
+
+  const handleAddToCart = async () => {
+    if (!canAddToCart || !product?.id || !activeBundle?.id) return
+    if (!readAuthToken()) {
+      const returnTo = `${location.pathname}${location.search || ''}`
+      navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`, { replace: false })
+      return
+    }
+    setAddingToCart(true)
+    try {
+      await addItem({
+        productId: product.id,
+        variantId: activeBundle.id,
+        quantity: 1,
+      })
+      setJustAddedToCart(true)
+      window.setTimeout(() => setJustAddedToCart(false), 2200)
+    } catch {
+      /* errors surface via CartContext in other views; optional: toast */
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!product?.name) return
+    const prev = document.title
+    document.title = `${product.name} · Union`
+    return () => {
+      document.title = prev
+    }
+  }, [product?.id, product?.name])
 
   useEffect(() => {
     queueMicrotask(() => {
-      if (!product?.options?.length) {
+      if (!optionGroups.length) {
         setSelections({})
         return
       }
-      setSelections(defaultOptionSelections(product.options))
+      if (product?.variants?.[0]?.selection) {
+        setSelections({ ...product.variants[0].selection })
+        return
+      }
+      setSelections(defaultOptionSelections(optionGroups))
     })
-  }, [product?.id, product?.options])
+  }, [product?.id, optionGroups])
+
+  const bundleKey = activeBundle?.id ?? ''
+  useEffect(() => {
+    if (!product) return
+    setActiveImageIndex(0)
+  }, [product?.id, bundleKey])
 
   useEffect(() => {
     if (!product) return
-    const prev = prevProductIdRef.current
-    prevProductIdRef.current = product.id
     const max = Math.max(0, gallery.length - 1)
-    const firstColor = product.options?.find((g) => g.id === 'color')?.values?.[0]
-    const fromColor =
-      firstColor && typeof firstColor.imageIndex === 'number'
-        ? Math.min(Math.max(0, firstColor.imageIndex), max)
-        : 0
-    queueMicrotask(() => {
-      if (prev !== product.id) {
-        setActiveImageIndex(fromColor)
-      } else {
-        setActiveImageIndex((i) => Math.min(i, max))
-      }
-    })
-  }, [product, gallery.length])
+    setActiveImageIndex((i) => Math.min(i, max))
+  }, [product?.id, gallery.length])
 
   const pickOption = (group, value) => {
     setSelections((p) => ({ ...p, [group.id]: value.id }))
-    if (group.id === 'color' && typeof value.imageIndex === 'number' && gallery.length > 0) {
+    if (showOptionDeltas && group.id === 'color' && typeof value.imageIndex === 'number' && gallery.length > 0) {
       const next = Math.min(Math.max(0, value.imageIndex), gallery.length - 1)
       setActiveImageIndex(next)
     }
@@ -138,15 +255,15 @@ export default function CollectionProductPage() {
     persistTheme(isDark)
   }, [isDark])
 
+  /** Keep hero price in sync with variant math on every selection change (not gated on scroll). */
   useEffect(() => {
     if (!product) return
-    springPrice.set(0)
-  }, [product.id, product, springPrice])
-
-  useEffect(() => {
-    if (!product || !priceInView) return
-    springPrice.set(resolvedPrice)
-  }, [product, resolvedPrice, priceInView, springPrice])
+    if (reduceMotion && typeof springPrice.jump === 'function') {
+      springPrice.jump(resolvedPrice)
+    } else {
+      springPrice.set(resolvedPrice)
+    }
+  }, [product, resolvedPrice, reduceMotion, springPrice])
 
   useMotionValueEvent(springPrice, 'change', (v) => {
     setPriceLabel(Math.round(v))
@@ -175,6 +292,53 @@ export default function CollectionProductPage() {
   const onHeroLeave = () => {
     mx.set(0)
     my.set(0)
+  }
+
+  const copyShareLink = () => {
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    if (!url) return
+    navigator.clipboard.writeText(url).then(
+      () => {
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 2200)
+      },
+      () => {},
+    )
+  }
+
+  const collectionsIndexHref = product?.universitySlug
+    ? `/collections?university=${encodeURIComponent(product.universitySlug)}`
+    : '/collections'
+
+  if (loadStatus === 'loading') {
+    return (
+      <div className="prd-signal prd-signal-mesh relative min-h-dvh text-[var(--prd-ink)]">
+        <SiteHeader isDark={isDark} setIsDark={setIsDark} />
+        <main className="relative z-10 mx-auto max-w-[1180px] px-4 pb-24 pt-8 sm:px-6 sm:pt-10">
+          <div className="mb-8 h-10 max-w-xs animate-pulse rounded-full bg-[var(--prd-line)]/40" aria-hidden />
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-6">
+            <div className="lg:col-span-7">
+              <div className="aspect-[4/5] w-full animate-pulse rounded-[1.25rem] bg-[var(--prd-line)]/35 sm:aspect-[5/6]" />
+              <div className="mt-3 flex gap-2">
+                <div className="h-16 w-14 shrink-0 animate-pulse rounded-lg bg-[var(--prd-line)]/30" />
+                <div className="h-16 w-14 shrink-0 animate-pulse rounded-lg bg-[var(--prd-line)]/30" />
+                <div className="h-16 w-14 shrink-0 animate-pulse rounded-lg bg-[var(--prd-line)]/30" />
+              </div>
+            </div>
+            <div className="flex flex-col gap-4 lg:col-span-5">
+              <div className="h-4 w-24 animate-pulse rounded bg-[var(--prd-line)]/40" />
+              <div className="h-8 w-3/4 max-w-sm animate-pulse rounded-lg bg-[var(--prd-line)]/35" />
+              <div className="h-20 w-full animate-pulse rounded-xl bg-[var(--prd-line)]/25" />
+              <div className="h-12 w-full animate-pulse rounded-xl bg-[var(--prd-line)]/30" />
+            </div>
+          </div>
+          <p className="mt-8 text-center text-sm text-[var(--prd-muted)]">
+            {language === 'uz' ? 'Yuklanmoqda…' : language === 'ru' ? 'Загрузка…' : 'Loading product…'}
+          </p>
+        </main>
+        <SiteFooter />
+      </div>
+    )
   }
 
   if (!product) {
@@ -213,7 +377,7 @@ export default function CollectionProductPage() {
             className="mb-8 flex flex-wrap items-center justify-between gap-4 sm:mb-10"
           >
             <Link
-              to="/collections"
+              to={collectionsIndexHref}
               className="group inline-flex items-center gap-3 rounded-full border border-[var(--prd-line)] bg-[var(--prd-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--prd-ink)] shadow-sm backdrop-blur-md transition hover:border-[var(--prd-lime)]/50 hover:shadow-[0_0_24px_-4px_var(--prd-glow)]"
             >
               <motion.span
@@ -300,7 +464,7 @@ export default function CollectionProductPage() {
                       >
                         <img
                           src={activeSrc}
-                          alt=""
+                          alt={product.name}
                           className="h-[108%] w-[108%] max-w-none -translate-x-[4%] -translate-y-[4%] object-cover opacity-95 saturate-[1.05]"
                           loading={activeImageIndex === 0 ? 'eager' : 'lazy'}
                           decoding="async"
@@ -341,7 +505,7 @@ export default function CollectionProductPage() {
                   <div className="mt-3 flex gap-2 overflow-x-auto pb-1 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {gallery.map((src, idx) => (
                       <button
-                        key={src}
+                        key={`${idx}-${src}`}
                         type="button"
                         onClick={() => setActiveImageIndex(idx)}
                         aria-label={`Show image ${idx + 1} of ${galleryLen}`}
@@ -352,7 +516,12 @@ export default function CollectionProductPage() {
                             : 'border-[var(--prd-line)] opacity-80 hover:border-[var(--prd-magenta)]/50 hover:opacity-100'
                         }`}
                       >
-                        <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        <img
+                          src={src}
+                          alt={`${product.name} — ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
                       </button>
                     ))}
                   </div>
@@ -373,6 +542,22 @@ export default function CollectionProductPage() {
                 <p className="mt-2 inline-flex items-center gap-2 rounded-md bg-[var(--prd-lime-dim)] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-[var(--prd-ink)]">
                   {categoryLabel}
                 </p>
+                {product.universitySlug ? (
+                  <Link
+                    to={`/collections?university=${encodeURIComponent(product.universitySlug)}`}
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--prd-muted)] transition hover:text-[var(--prd-lime)]"
+                  >
+                    <MapPin className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                    <span>
+                      {language === 'uz'
+                        ? 'Kampus: '
+                        : language === 'ru'
+                          ? 'Кампус: '
+                          : 'Campus: '}
+                      {formatCampusLabel(product.universitySlug)}
+                    </span>
+                  </Link>
+                ) : null}
                 <h1 className="mt-4 text-[clamp(1.65rem,4.5vw,2.35rem)] font-extrabold leading-[1.08] tracking-tight">
                   {product.name}
                 </h1>
@@ -409,7 +594,10 @@ export default function CollectionProductPage() {
                         >
                           {group.values.map((v) => {
                             const selected = selections[group.id] === v.id
-                            const delta = v.priceDelta ? ` · +$${v.priceDelta}` : ''
+                            const delta =
+                              showOptionDeltas && v.priceDelta
+                                ? ` · +$${v.priceDelta}`
+                                : ''
                             if (group.type === 'swatch') {
                               return (
                                 <button
@@ -450,7 +638,7 @@ export default function CollectionProductPage() {
                                 }`}
                               >
                                 {v.label}
-                                {v.priceDelta ? (
+                                {showOptionDeltas && v.priceDelta ? (
                                   <span className="ml-1 font-mono text-[10px] font-semibold opacity-80">
                                     +${v.priceDelta}
                                   </span>
@@ -489,8 +677,10 @@ export default function CollectionProductPage() {
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <motion.button
                     type="button"
-                    className="relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[var(--prd-void)] px-6 py-3.5 text-sm font-extrabold uppercase tracking-[0.12em] text-[var(--prd-lime)] shadow-lg sm:w-auto"
-                    whileHover={reduceMotion ? {} : { scale: 1.03 }}
+                    onClick={handleAddToCart}
+                    disabled={!canAddToCart || addingToCart}
+                    className="relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[var(--prd-void)] px-6 py-3.5 text-sm font-extrabold uppercase tracking-[0.12em] text-[var(--prd-lime)] shadow-lg enabled:cursor-pointer enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    whileHover={reduceMotion || !canAddToCart ? {} : { scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {!reduceMotion ? (
@@ -502,17 +692,54 @@ export default function CollectionProductPage() {
                         transition={{ duration: 0.55, ease: 'easeInOut' }}
                       />
                     ) : null}
-                    <span className="relative z-10">{language === 'uz' ? 'Sotib olish' : language === 'ru' ? 'Купить' : 'Acquire'}</span>
-                    <ArrowRight className="relative z-10 h-4 w-4" aria-hidden />
+                    <span className="relative z-10">
+                      {addingToCart
+                        ? language === 'uz'
+                          ? 'Qo‘shilmoqda…'
+                          : language === 'ru'
+                            ? 'Добавление…'
+                            : 'Adding…'
+                        : justAddedToCart
+                          ? language === 'uz'
+                            ? 'Savatchada ✓'
+                            : language === 'ru'
+                              ? 'В корзине ✓'
+                              : 'In cart ✓'
+                          : language === 'uz'
+                            ? 'Sotib olish'
+                            : language === 'ru'
+                              ? 'Купить'
+                              : 'Add to cart'}
+                    </span>
+                    {justAddedToCart ? (
+                      <Check className="relative z-10 h-4 w-4 text-[var(--prd-lime)]" aria-hidden />
+                    ) : (
+                      <ArrowRight className="relative z-10 h-4 w-4" aria-hidden />
+                    )}
                   </motion.button>
                   <motion.button
                     type="button"
+                    onClick={copyShareLink}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--prd-line)] bg-transparent px-5 py-3.5 text-sm font-bold text-[var(--prd-ink)] transition hover:border-[var(--prd-magenta)]/50 sm:w-auto"
                     whileHover={reduceMotion ? {} : { rotate: [-0.5, 0.5, 0] }}
                     transition={{ duration: 0.35 }}
                   >
-                    <Share2 className="h-4 w-4" aria-hidden />
-                    {language === 'uz' ? 'Havolani ulashish' : language === 'ru' ? 'Поделиться ссылкой' : 'Echo link'}
+                    {shareCopied ? (
+                      <Check className="h-4 w-4 text-[var(--prd-lime)]" aria-hidden />
+                    ) : (
+                      <Share2 className="h-4 w-4" aria-hidden />
+                    )}
+                    {shareCopied
+                      ? language === 'uz'
+                        ? 'Nusxa olindi'
+                        : language === 'ru'
+                          ? 'Ссылка скопирована'
+                          : 'Link copied'
+                      : language === 'uz'
+                        ? 'Havolani ulashish'
+                        : language === 'ru'
+                          ? 'Поделиться ссылкой'
+                          : 'Copy link'}
                   </motion.button>
                 </div>
               </motion.div>
@@ -577,14 +804,14 @@ export default function CollectionProductPage() {
               <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-                    {language === 'uz' ? "O'xshash signallar" : language === 'ru' ? 'Соседние позиции' : 'Adjacent signals'}
+                    {language === 'uz' ? "Shu kampusdan boshqa" : language === 'ru' ? 'Ещё с этого кампуса' : 'More from this campus'}
                   </h2>
                   <p className="mt-1 max-w-md text-sm text-[var(--prd-muted)]">
                     {language === 'uz'
-                      ? "Bir xil kategoriya - hover qiling. Barcha ekranlarda vertikal moslashadi."
+                      ? "Ushbu universitetdigi boshqa buyumlar. Kartani bosing yoki uylanishni kuzating."
                       : language === 'ru'
-                        ? 'Та же категория - наведите для наклона. Адаптивно складывается по вертикали.'
-                        : 'Same category - hover for tilt. Stacks vertically on every viewport.'}
+                        ? 'Другие позиции для этого вуза. Клик по карточке или наведение для наклона.'
+                        : 'Other pieces stocked for this university. Click through or hover for tilt.'}
                   </p>
                 </div>
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--prd-lime)]">
@@ -603,29 +830,28 @@ export default function CollectionProductPage() {
                     className="min-w-0"
                     style={{ perspective: 900 }}
                   >
-                    <Link to={`/collections/${p.id}`} className="group block">
-                      <motion.div
-                        className="overflow-hidden rounded-xl border-2 border-[var(--prd-line)] bg-[var(--prd-surface)] shadow-md"
-                        whileHover={reduceMotion ? {} : { rotateY: -5, rotateX: 3, y: -6 }}
-                        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                        style={{ transformStyle: 'preserve-3d' }}
-                      >
-                        <div className="aspect-[4/5] overflow-hidden bg-[var(--prd-void)]">
-                          <motion.img
-                            src={p.image}
-                            alt=""
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                            whileHover={reduceMotion ? {} : { scale: 1.08 }}
-                            transition={{ duration: 0.45 }}
-                          />
-                        </div>
-                        <div className="border-t border-[var(--prd-line)] p-3">
-                          <p className="truncate text-sm font-bold">{p.name}</p>
-                          <p className="mt-1 font-mono text-xs font-bold text-[var(--prd-lime)]">${p.price}</p>
-                        </div>
-                      </motion.div>
-                    </Link>
+                    <MotionLink
+                      to={`/collections/${p.id}`}
+                      className="group block overflow-hidden rounded-xl border-2 border-[var(--prd-line)] bg-[var(--prd-surface)] shadow-md outline-none ring-[var(--prd-lime)]/50 ring-offset-2 ring-offset-[var(--prd-bg)] focus-visible:ring-2"
+                      whileHover={reduceMotion ? {} : { rotateY: -5, rotateX: 3, y: -6 }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                      style={{ transformStyle: 'preserve-3d' }}
+                    >
+                      <div className="aspect-[4/5] overflow-hidden bg-[var(--prd-void)]">
+                        <motion.img
+                          src={p.image}
+                          alt={p.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          whileHover={reduceMotion ? {} : { scale: 1.08 }}
+                          transition={{ duration: 0.45 }}
+                        />
+                      </div>
+                      <div className="border-t border-[var(--prd-line)] p-3">
+                        <p className="truncate text-sm font-bold">{p.name}</p>
+                        <p className="mt-1 font-mono text-xs font-bold text-[var(--prd-lime)]">${p.price}</p>
+                      </div>
+                    </MotionLink>
                   </motion.div>
                 ))}
               </div>

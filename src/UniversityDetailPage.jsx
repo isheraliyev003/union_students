@@ -1,19 +1,61 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { motion, useMotionTemplate, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { ChevronDown, ShoppingBag } from 'lucide-react'
-import { Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { getStoreProducts } from './api/catalogApi.js'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
-import { getUniversityDetail, UNIVERSITY_HERO_VIDEOS } from './data/universityDetail.js'
+import { fetchUniversityDetailView, UNIVERSITY_HERO_VIDEOS } from './data/universityDetail.js'
 import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
 
 const springCfg = { stiffness: 38, damping: 18, mass: 0.6 }
 
+const MotionLink = motion.create(Link)
+
 export default function UniversityDetailPage() {
   const { language, tl } = useI18n()
   const { id } = useParams()
-  const uni = useMemo(() => (id ? getUniversityDetail(id) : null), [id])
+  const [uni, setUni] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [shopPicks, setShopPicks] = useState([])
+
+  useEffect(() => {
+    if (!id) {
+      setShopPicks([])
+      return
+    }
+    let c = true
+    getStoreProducts({ university: id, limit: 3, sort: 'featured' })
+      .then((list) => {
+        if (!c) return
+        setShopPicks(Array.isArray(list) ? list : [])
+      })
+      .catch(() => {
+        if (c) setShopPicks([])
+      })
+    return () => {
+      c = false
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (!id) {
+      setUni(null)
+      setLoading(false)
+      return
+    }
+    let c = true
+    setLoading(true)
+    fetchUniversityDetailView(id).then((data) => {
+      if (!c) return
+      setUni(data)
+      setLoading(false)
+    })
+    return () => {
+      c = false
+    }
+  }, [id])
   const videos = useMemo(() => {
     if (!uni) return [...UNIVERSITY_HERO_VIDEOS]
     return [...new Set([uni.heroVideo, ...UNIVERSITY_HERO_VIDEOS])]
@@ -50,8 +92,20 @@ export default function UniversityDetailPage() {
     my.set(0)
   }
 
-  if (!uni) {
+  if (!loading && !uni) {
     return <Navigate to="/universities" replace />
+  }
+
+  if (loading || !uni) {
+    return (
+      <div className="relative min-h-screen bg-slate-50 text-slate-900 dark:bg-[#050508] dark:text-zinc-100">
+        <SiteHeader isDark={isDark} setIsDark={setIsDark} />
+        <div className="mx-auto max-w-lg px-5 pb-20 pt-32 text-center text-[var(--uni-muted)]">
+          Loading…
+        </div>
+        <SiteFooter />
+      </div>
+    )
   }
 
   return (
@@ -143,29 +197,46 @@ export default function UniversityDetailPage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {uni.shopProductTeasers.map((p) => (
-                  <motion.div
-                    key={tl(p.name)}
+              <div className="relative z-10 mt-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {shopPicks.map((p) => (
+                  <MotionLink
+                    key={p.id}
+                    to={`/collections/${p.id}`}
                     whileHover={{ y: -4, scale: 1.03 }}
-                    className="w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5"
+                    whileTap={{ scale: 0.98 }}
+                    className="block w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 outline-none ring-violet-500/60 ring-offset-2 ring-offset-white transition-shadow focus-visible:ring-2 dark:border-white/10 dark:bg-white/5 dark:ring-amber-300/50 dark:ring-offset-[#0a0a0f]"
                   >
-                    <img src={p.img} alt="" className="aspect-square w-full object-cover" loading="lazy" />
+                    <img
+                      src={p.image}
+                      alt=""
+                      className="aspect-square w-full object-cover"
+                      loading="lazy"
+                    />
                     <div className="px-1.5 py-1.5">
-                      <p className="truncate text-[10px] font-semibold text-slate-800 dark:text-zinc-200">{tl(p.name)}</p>
-                      <p className="text-[10px] text-violet-600 dark:text-amber-200/90">${p.price}</p>
+                      <p className="line-clamp-2 text-[10px] font-semibold leading-tight text-slate-800 dark:text-zinc-200">
+                        {p.name}
+                      </p>
+                      {p.tag ? (
+                        <p className="mt-0.5 line-clamp-2 text-[9px] text-slate-500 dark:text-zinc-500">
+                          {p.tag}
+                        </p>
+                      ) : null}
                     </div>
-                  </motion.div>
+                  </MotionLink>
                 ))}
               </div>
-              <motion.a
-                href="#about"
-                className="mt-6 block w-full rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 py-3 text-center text-xs font-extrabold uppercase tracking-[0.2em] text-white shadow-lg shadow-violet-500/25 dark:from-amber-400 dark:via-amber-300 dark:to-yellow-200 dark:text-zinc-900 dark:shadow-amber-500/20"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {language === 'uz' ? "Hikoyani o'qish" : language === 'ru' ? 'Читать историю' : 'Read the story'}
-              </motion.a>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Link
+                  to={`/collections?university=${encodeURIComponent(uni.id)}`}
+                  className="mt-6 block w-full rounded-xl bg-gradient-to-r from-violet-600 to-violet-500 py-3 text-center text-xs font-extrabold uppercase tracking-[0.2em] text-white shadow-lg shadow-violet-500/25 dark:from-amber-400 dark:via-amber-300 dark:to-yellow-200 dark:text-zinc-900 dark:shadow-amber-500/20"
+                >
+                  {language === 'uz'
+                    ? 'Kolleksiyalarni ko‘rish'
+                    : language === 'ru'
+                      ? 'Смотреть коллекции'
+                      : 'Browse collections'}
+                </Link>
+              </motion.div>
             </div>
           </motion.div>
         </div>

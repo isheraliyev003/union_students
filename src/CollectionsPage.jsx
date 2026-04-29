@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types -- local presentational helpers; catalog shapes are static */
-import { useLayoutEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion'
 import {
   ArrowDownAZ,
@@ -12,12 +12,15 @@ import {
   Sparkles,
   Wand2,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { getStoreProducts, getUniversities } from './api/catalogApi.js'
 import SiteFooter from './components/SiteFooter.jsx'
 import SiteHeader from './components/SiteHeader.jsx'
-import { COLLECTION_CATEGORIES, COLLECTION_PRODUCTS, COLLECTION_TAGS } from './data/collectionsData.js'
+import { COLLECTION_CATEGORIES, COLLECTION_TAGS } from './data/collectionsData.js'
 import { useI18n } from './i18n.jsx'
 import { applyDarkClass, persistTheme, readStoredThemeIsDark } from './theme.js'
+
+const MotionLink = motion.create(Link)
 
 const SORTS = [
   { id: 'featured', label: 'Featured', icon: Sparkles },
@@ -26,10 +29,13 @@ const SORTS = [
   { id: 'name', label: 'Name', icon: ArrowDownAZ },
 ]
 
-function useFilteredProducts(query, category, activeTags, sortId) {
+function useFilteredProducts(products, query, category, activeTags, sortId, universitySlug) {
   return useMemo(() => {
+    const source = Array.isArray(products) ? products : []
     const q = query.trim().toLowerCase()
-    let list = COLLECTION_PRODUCTS.filter((p) => {
+    const uni = (universitySlug || '').trim().toLowerCase()
+    let list = source.filter((p) => {
+      if (uni && p.universitySlug !== uni) return false
       if (category !== 'all' && p.category !== category) return false
       if (activeTags.size && !activeTags.has(p.tag)) return false
       if (!q) return true
@@ -46,7 +52,7 @@ function useFilteredProducts(query, category, activeTags, sortId) {
     else if (sortId === 'price-desc') copy.sort((a, b) => b.price - a.price)
     else if (sortId === 'name') copy.sort((a, b) => a.name.localeCompare(b.name))
     return copy
-  }, [query, category, activeTags, sortId])
+  }, [products, query, category, activeTags, sortId, universitySlug])
 }
 
 const heroLines = ['Curated for campus rhythm.', 'Demo catalog — swap in your SKUs.']
@@ -54,19 +60,62 @@ const heroLines = ['Curated for campus rhythm.', 'Demo catalog — swap in your 
 export default function CollectionsPage() {
   const reduceMotion = useReducedMotion()
   const { language, tl } = useI18n()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const universityFilter = (searchParams.get('university') || '').trim()
   const [isDark, setIsDark] = useState(readStoredThemeIsDark)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [activeTags, setActiveTags] = useState(() => new Set())
   const [sortId, setSortId] = useState('featured')
   const [searchFocused, setSearchFocused] = useState(false)
+  const [universitiesOptions, setUniversitiesOptions] = useState([])
+  const [storeProducts, setStoreProducts] = useState(() => [])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState(null)
 
   useLayoutEffect(() => {
     applyDarkClass(isDark)
     persistTheme(isDark)
   }, [isDark])
 
-  const filtered = useFilteredProducts(query, category, activeTags, sortId)
+  useEffect(() => {
+    getUniversities()
+      .then((list) => setUniversitiesOptions(Array.isArray(list) ? list : []))
+      .catch(() => setUniversitiesOptions([]))
+  }, [])
+
+  useEffect(() => {
+    setCatalogLoading(true)
+    setCatalogError(null)
+    getStoreProducts()
+      .then((rows) => {
+        setStoreProducts(Array.isArray(rows) ? rows : [])
+      })
+      .catch((err) => {
+        setStoreProducts([])
+        setCatalogError(err)
+      })
+      .finally(() => {
+        setCatalogLoading(false)
+      })
+  }, [])
+
+  const setUniversityFilter = (slug) => {
+    if (!slug) {
+      setSearchParams({}, { replace: true })
+    } else {
+      setSearchParams({ university: slug }, { replace: true })
+    }
+  }
+
+  const filtered = useFilteredProducts(
+    storeProducts,
+    query,
+    category,
+    activeTags,
+    sortId,
+    universityFilter,
+  )
 
   const toggleTag = (tag) => {
     setActiveTags((prev) => {
@@ -181,7 +230,10 @@ export default function CollectionsPage() {
                 className="relative mt-10 grid grid-cols-3 gap-3 sm:gap-4"
               >
                 {[
-                  { k: 'Pieces', v: String(COLLECTION_PRODUCTS.length) },
+                  {
+                    k: 'Pieces',
+                    v: catalogLoading ? '…' : String(storeProducts.length),
+                  },
                   { k: 'Worlds', v: String(COLLECTION_CATEGORIES.length) },
                   { k: 'Tags', v: String(COLLECTION_TAGS.length) },
                 ].map((cell, idx) => (
@@ -231,7 +283,7 @@ export default function CollectionsPage() {
                   >
                     <span className="text-sm font-medium">{tl(c.label)}</span>
                     <span className="font-mono text-xs text-[var(--col-muted)]">
-                      {COLLECTION_PRODUCTS.filter((p) => p.category === c.id).length} {language === 'uz' ? 'dona' : language === 'ru' ? 'шт' : 'pcs'}
+                      {storeProducts.filter((p) => p.category === c.id).length} {language === 'uz' ? 'dona' : language === 'ru' ? 'шт' : 'pcs'}
                     </span>
                   </motion.div>
                 ))}
@@ -289,7 +341,7 @@ export default function CollectionsPage() {
                         className="-rotate-1 select-none rounded-2xl border border-[var(--col-line)] bg-[var(--col-surface-strong)] px-4 py-2.5 text-center shadow-sm"
                       >
                         <span className="font-mono text-2xl font-bold tabular-nums leading-none text-[var(--col-ink)]">
-                          {filtered.length}
+                          {catalogLoading ? '…' : filtered.length}
                         </span>
                         <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--col-muted)]">
                           shown
@@ -340,7 +392,7 @@ export default function CollectionsPage() {
 
                     <LayoutGroup id="col-cats">
                       <div>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--col-muted)]">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--col-muted)] dark:text-zinc-400">
                           Category
                         </p>
                         <div className="col-refine-chips -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
@@ -359,6 +411,47 @@ export default function CollectionsPage() {
                         </div>
                       </div>
                     </LayoutGroup>
+
+                    <div>
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--col-muted)] dark:text-zinc-400">
+                        {language === 'uz'
+                          ? 'Universitet'
+                          : language === 'ru'
+                            ? 'Университет'
+                            : 'University'}
+                      </p>
+                      <div className="relative">
+                        <select
+                          value={universityFilter}
+                          onChange={(e) => setUniversityFilter(e.target.value)}
+                          className="w-full cursor-pointer appearance-none rounded-[1.25rem] border border-[var(--col-line)] bg-[var(--col-surface-strong)]/90 py-3 pl-4 pr-10 text-left text-sm font-medium text-[var(--col-ink)] shadow-sm outline-none transition focus:border-[var(--col-accent)]/55 focus:ring-2 focus:ring-[var(--col-accent)]/20 dark:border-white/10 dark:bg-zinc-950/90 dark:text-zinc-50 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] dark:[color-scheme:dark] dark:placeholder:text-zinc-500"
+                          aria-label={
+                            language === 'uz'
+                              ? 'Universitet bo‘yicha filtr'
+                              : language === 'ru'
+                                ? 'Фильтр по университету'
+                                : 'Filter by university'
+                          }
+                        >
+                          <option value="">
+                            {language === 'uz'
+                              ? 'Barcha universitetlar'
+                              : language === 'ru'
+                                ? 'Все университеты'
+                                : 'All universities'}
+                          </option>
+                          {universitiesOptions.map((u) => (
+                            <option key={u.slug} value={u.slug}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown
+                          className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--col-muted)] dark:text-zinc-400"
+                          aria-hidden
+                        />
+                      </div>
+                    </div>
 
                     <div>
                       <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--col-muted)]">Tags</p>
@@ -438,15 +531,33 @@ export default function CollectionsPage() {
             </div>
           </motion.section>
 
+          {catalogError && !storeProducts.length ? (
+            <div className="mt-14 rounded-[1.75rem] border border-[var(--col-line)] bg-[var(--col-surface)] px-6 py-10 text-center shadow-[0_16px_48px_-24px_var(--col-shadow)]">
+              <p className="text-sm text-[var(--col-muted)]">
+                {language === 'uz'
+                  ? 'Katalogni yuklab bo‘lmadi. API va seedni tekshiring.'
+                  : language === 'ru'
+                    ? 'Не удалось загрузить каталог. Проверьте API и seed.'
+                    : 'Could not load the catalog. Check that the API is running and the database is seeded.'}
+              </p>
+            </div>
+          ) : null}
+
           <ul className="mt-14 grid list-none grid-cols-1 gap-9 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-10">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((p, i) => (
-                <CuratorCard key={p.id} product={p} index={i} reduceMotion={reduceMotion} />
-              ))}
-            </AnimatePresence>
+            {catalogLoading && !storeProducts.length ? (
+              <li className="col-span-full text-center text-sm text-[var(--col-muted)]">
+                {language === 'uz' ? 'Katalog yuklanmoqda…' : language === 'ru' ? 'Загрузка каталога…' : 'Loading catalog…'}
+              </li>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {filtered.map((p, i) => (
+                  <CuratorCard key={p.id} product={p} index={i} reduceMotion={reduceMotion} />
+                ))}
+              </AnimatePresence>
+            )}
           </ul>
 
-          {!filtered.length ? (
+          {!catalogLoading && !filtered.length && !catalogError ? (
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -494,13 +605,13 @@ function CuratorChip({ children, active, onClick, layoutId }) {
       className={`relative rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
         active
           ? 'border-transparent text-white'
-          : 'border-[var(--col-line)] bg-[var(--col-surface-strong)] text-[var(--col-ink)] hover:border-[var(--col-accent)]/35'
+          : 'border-[var(--col-line)] bg-[var(--col-surface-strong)] text-[var(--col-ink)] hover:border-[var(--col-accent)]/35 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-200 dark:shadow-sm dark:shadow-black/20 dark:hover:border-[var(--col-accent)]/40 dark:hover:text-zinc-50'
       }`}
     >
       {active ? (
         <motion.span
           layoutId={layoutId}
-          className="absolute inset-0 rounded-full bg-[var(--col-ink)] dark:bg-gradient-to-r dark:from-[#312e81] dark:to-[#831843]"
+          className="absolute inset-0 rounded-full bg-[var(--col-ink)] dark:bg-gradient-to-r dark:from-violet-900/90 dark:via-fuchsia-900/85 dark:to-rose-900/80"
           transition={{ type: 'spring', stiffness: 400, damping: 32 }}
         />
       ) : null}
@@ -512,7 +623,8 @@ function CuratorChip({ children, active, onClick, layoutId }) {
 function CuratorCard({ product, index, reduceMotion }) {
   const cat = COLLECTION_CATEGORIES.find((c) => c.id === product.category)?.label ?? product.category
   const specimen = String(index + 1).padStart(2, '0')
-  const to = `/collections/${product.id}`
+  const productId = product?.id != null ? String(product.id).trim() : ''
+  const to = productId ? `/collections/${encodeURIComponent(productId)}` : '/collections'
 
   return (
     <motion.li
@@ -523,16 +635,13 @@ function CuratorCard({ product, index, reduceMotion }) {
       transition={{ type: 'spring', stiffness: 280, damping: 28, delay: index * 0.032 }}
       className="group flex h-full"
     >
-      <Link
+      <MotionLink
         to={to}
-        className="flex h-full min-h-0 w-full flex-col rounded-[1.35rem] outline-none ring-offset-2 ring-offset-white transition-shadow focus-visible:ring-2 focus-visible:ring-[var(--col-accent)] dark:ring-offset-[var(--col-bg)]"
+        layout
+        className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.35rem] border border-[var(--col-line)] bg-[var(--col-surface-strong)] shadow-[0_4px_0_0_var(--col-line),0_22px_56px_-34px_var(--col-shadow)] outline-none ring-offset-2 ring-offset-white transition-shadow focus-visible:ring-2 focus-visible:ring-[var(--col-accent)] dark:shadow-[0_3px_0_0_var(--col-line),0_26px_60px_-36px_var(--col-shadow)] dark:ring-offset-[var(--col-bg)]"
+        whileHover={reduceMotion ? {} : { y: -5, boxShadow: '0 6px 0 0 var(--col-line), 0 32px 70px -28px var(--col-shadow)' }}
+        transition={{ type: 'spring', stiffness: 340, damping: 22 }}
       >
-        <motion.article
-          layout
-          className="relative flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.35rem] border border-[var(--col-line)] bg-[var(--col-surface-strong)] shadow-[0_4px_0_0_var(--col-line),0_22px_56px_-34px_var(--col-shadow)] dark:shadow-[0_3px_0_0_var(--col-line),0_26px_60px_-36px_var(--col-shadow)]"
-          whileHover={reduceMotion ? {} : { y: -5, boxShadow: '0 6px 0 0 var(--col-line), 0 32px 70px -28px var(--col-shadow)' }}
-          transition={{ type: 'spring', stiffness: 340, damping: 22 }}
-        >
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--col-accent)]/45 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:group-hover:opacity-0"
@@ -596,8 +705,7 @@ function CuratorCard({ product, index, reduceMotion }) {
             />
           </span>
         </div>
-      </motion.article>
-      </Link>
+      </MotionLink>
     </motion.li>
   )
 }

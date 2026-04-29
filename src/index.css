@@ -358,6 +358,15 @@ html.dark .col-lab {
   --site-header-popover-border: rgb(51 65 85);
 }
 
+/* Collections refine: native <select> / options in dark mode (contrast + OS popover). */
+html.dark .col-lab select {
+  color-scheme: dark;
+}
+html.dark .col-lab select option {
+  background-color: rgb(9 9 11);
+  color: rgb(244 244 245);
+}
+
 .col-lab-display {
   font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
   font-optical-sizing: auto;

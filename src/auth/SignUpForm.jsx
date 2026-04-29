@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useAnimation } from 'framer-motion'
-import { DEMO_OTP, PASSWORD_MIN_LENGTH } from './constants'
-import { addDemoUser } from './demoUserStore'
+import { checkSignUpEmail, verifySignUpCode, signIn, signUp, ApiError } from '../api/authApi.js'
+import { getUniversities } from '../api/catalogApi.js'
+import { setSession } from '../authSession.js'
 import { useI18n } from '../i18n.jsx'
-import { UNIVERSITIES } from './universities'
 import { cardVariants, staggerContainer, staggerItem } from './motion'
 
 const inputClass =
@@ -27,14 +27,22 @@ export default function SignUpForm({ onSuccess }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [universitiesList, setUniversitiesList] = useState([])
   const firstFieldRef = useRef(null)
   const shakeControls = useAnimation()
+
+  useEffect(() => {
+    getUniversities()
+      .then((list) => setUniversitiesList(list))
+      .catch(() => setUniversitiesList([]))
+  }, [])
 
   useEffect(() => {
     firstFieldRef.current?.focus()
   }, [step])
 
-  const submitDetails = (e) => {
+  const submitDetails = async (e) => {
     e.preventDefault()
     setError('')
     if (!fullName.trim()) {
@@ -53,48 +61,85 @@ export default function SignUpForm({ onSuccess }) {
       setError(t('authErrorSelectUniversity', 'Please select a university.'))
       return
     }
-    setStep(2)
+    setSubmitting(true)
+    try {
+      const data = await checkSignUpEmail({ email: email.trim() })
+      if (!data?.available) {
+        setError(t('authErrorAccountExists', 'An account with this email already exists.'))
+        return
+      }
+      setStep(2)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const submitCode = (e) => {
+  const submitCode = async (e) => {
     e.preventDefault()
     setError('')
-    if (code.trim() !== DEMO_OTP) {
-      setError(t('authErrorInvalidCode', 'Invalid code. Use 1234 for this demo.'))
-      shakeControls.start({ x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.45 } })
-      return
+    setSubmitting(true)
+    try {
+      await verifySignUpCode({ email: email.trim(), code: code.trim() })
+      setStep(3)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(t('authErrorInvalidCode', 'Invalid verification code.'))
+        shakeControls.start({ x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.45 } })
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
     }
-    setStep(3)
   }
 
-  const submitPasswords = (e) => {
+  const submitPasswords = async (e) => {
     e.preventDefault()
     setError('')
-    if (password.length < PASSWORD_MIN_LENGTH) {
-      setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`)
-      return
-    }
     if (password !== confirm) {
       setError(t('authErrorPasswordsMismatch', 'Passwords do not match.'))
       return
     }
-    const res = addDemoUser({
-      email,
-      fullName,
-      gender,
-      universityId,
-      password,
-    })
-    if (!res.ok) {
-      setError(t(res.error, res.error))
-      return
+    setSubmitting(true)
+    try {
+      await signUp({
+        email: email.trim(),
+        fullName: fullName.trim(),
+        gender,
+        universityId,
+        password,
+      })
+      const data = await signIn({ email: email.trim(), password })
+      if (data?.token) {
+        setSession({ token: data.token, user: data.user })
+      } else {
+        setSession({ user: data.user })
+      }
+      onSuccess()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 400) {
+          setError(t('authErrorAccountExists', 'An account with this email already exists.'))
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
     }
-    onSuccess()
   }
 
   const stepCopy = {
     1: t('authTellUsAboutYou', 'Tell us about you and your university.'),
-    2: t('authEnterCodeDemo', 'Enter the verification code (demo: 1234).'),
+    2: t('authEnterCode', 'Enter the 6-digit verification code sent to your email.'),
     3: t('authSetSecurePassword', 'Set a secure password.'),
   }
 
@@ -192,7 +237,7 @@ export default function SignUpForm({ onSuccess }) {
                 required
               >
                 <option value="">{t('authSelectUniversity', 'Select university...')}</option>
-                {UNIVERSITIES.map((u) => (
+                {universitiesList.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
                   </option>
@@ -207,11 +252,12 @@ export default function SignUpForm({ onSuccess }) {
           ) : null}
           <motion.button
             type="submit"
+            disabled={submitting}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
-            className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
+            className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {t('authContinue', 'Continue')}
+            {submitting ? t('authChecking', 'Checking…') : t('authContinue', 'Continue')}
           </motion.button>
         </motion.form>
       ) : null}
@@ -239,7 +285,7 @@ export default function SignUpForm({ onSuccess }) {
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
               className={inputClass}
-              placeholder="1234"
+                placeholder={t('authCodePlaceholder', '6-digit code')}
               required
             />
           </motion.div>
@@ -250,11 +296,12 @@ export default function SignUpForm({ onSuccess }) {
           ) : null}
           <motion.button
             type="submit"
+            disabled={submitting}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
-            className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
+            className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {t('authVerify', 'Verify')}
+            {submitting ? t('authVerifying', 'Verifying…') : t('authVerify', 'Verify')}
           </motion.button>
         </motion.form>
       ) : null}
@@ -283,7 +330,6 @@ export default function SignUpForm({ onSuccess }) {
                 onChange={(e) => setPassword(e.target.value)}
                 className={inputClass}
                 required
-                minLength={PASSWORD_MIN_LENGTH}
               />
             </motion.div>
             <motion.div variants={staggerItem}>
@@ -298,7 +344,6 @@ export default function SignUpForm({ onSuccess }) {
                 onChange={(e) => setConfirm(e.target.value)}
                 className={inputClass}
                 required
-                minLength={PASSWORD_MIN_LENGTH}
               />
             </motion.div>
           </motion.div>
@@ -309,11 +354,14 @@ export default function SignUpForm({ onSuccess }) {
           ) : null}
           <motion.button
             type="submit"
+            disabled={submitting}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
-            className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
+            className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {t('authCreateAccount', 'Create account')}
+            {submitting
+              ? t('authCreatingAccount', 'Creating account…')
+              : t('authCreateAccount', 'Create account')}
           </motion.button>
         </motion.form>
       ) : null}

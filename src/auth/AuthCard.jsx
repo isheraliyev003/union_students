@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { setRegistered } from '../authSession.js'
 import { useI18n } from '../i18n.jsx'
 import ResetPasswordForm from './ResetPasswordForm.jsx'
 import SignInForm from './SignInForm.jsx'
 import SignUpForm from './SignUpForm.jsx'
 
+/** Same-origin path only; blocks open redirects. */
+function getSafeReturnPath(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return null
+  const t = raw.trim()
+  if (!t.startsWith('/') || t.startsWith('//')) return null
+  if (t.includes('://')) return null
+  return t
+}
+
 export default function AuthCard() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { t } = useI18n()
   const [tab, setTab] = useState('signIn')
   const [showReset, setShowReset] = useState(false)
@@ -16,7 +26,10 @@ export default function AuthCard() {
 
   const handleAuthSuccess = () => {
     setRegistered(true)
-    navigate('/', { replace: true })
+    const next =
+      getSafeReturnPath(searchParams.get('returnTo')) ||
+      getSafeReturnPath(searchParams.get('from'))
+    navigate(next ?? '/', { replace: true })
   }
 
   const handleResetComplete = (email) => {

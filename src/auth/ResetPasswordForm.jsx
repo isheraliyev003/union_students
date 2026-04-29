@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useAnimation } from 'framer-motion'
-import { DEMO_OTP, PASSWORD_MIN_LENGTH } from './constants'
-import { findDemoUserByEmail, updateDemoUserPassword } from './demoUserStore'
+import {
+  requestPasswordReset,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
+  ApiError,
+} from '../api/authApi.js'
 import { useI18n } from '../i18n.jsx'
 import { cardVariants, staggerContainer, staggerItem } from './motion'
 
@@ -10,7 +14,7 @@ const inputClass =
 
 const stepCopy = {
   1: 'Enter the email for your account.',
-  2: 'Enter the verification code sent to your email (demo: 1234).',
+  2: 'Enter the 6-digit verification code sent to your email.',
   3: 'Choose a new password.',
 }
 
@@ -22,6 +26,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const firstFieldRef = useRef(null)
   const controls = useAnimation()
 
@@ -29,45 +34,72 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
     firstFieldRef.current?.focus()
   }, [step])
 
-  const sendEmail = (e) => {
+  const sendEmail = async (e) => {
     e.preventDefault()
     setError('')
-    if (!findDemoUserByEmail(email)) {
-      setError(t('authErrorNoAccount', 'No account found for this email.'))
-      return
+    setSubmitting(true)
+    try {
+      await requestPasswordReset({ email: email.trim() })
+      setStep(2)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          setError(t('authErrorNoAccount', 'No account found for this email.'))
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
     }
-    setStep(2)
   }
 
-  const verifyCode = (e) => {
+  const verifyCode = async (e) => {
     e.preventDefault()
     setError('')
-    if (code.trim() !== DEMO_OTP) {
-      setError(t('authErrorInvalidCodeTryAgain', 'Invalid code. Try again.'))
-      controls.start({ x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.45 } })
-      return
+    setSubmitting(true)
+    try {
+      await verifyPasswordResetCode({ email: email.trim(), code: code.trim() })
+      setStep(3)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(t('authErrorInvalidCodeTryAgain', 'Invalid code. Try again.'))
+        controls.start({ x: [0, -10, 10, -10, 10, 0], transition: { duration: 0.45 } })
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
     }
-    setStep(3)
   }
 
-  const savePassword = (e) => {
+  const savePassword = async (e) => {
     e.preventDefault()
     setError('')
-    if (password.length < PASSWORD_MIN_LENGTH) {
-      setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`)
-      return
-    }
     if (password !== confirm) {
       setError(t('authErrorPasswordsMismatch', 'Passwords do not match.'))
       return
     }
-    const res = updateDemoUserPassword(email, password)
-    if (!res.ok) {
-      setError(t(res.error, res.error))
-      return
+    setSubmitting(true)
+    try {
+      await confirmPasswordReset({
+        email: email.trim(),
+        code: code.trim(),
+        newPassword: password,
+      })
+      onComplete(email)
+      onBack()
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError(t('authErrorNetwork', 'Could not reach the server. Is the API running?'))
+      }
+    } finally {
+      setSubmitting(false)
     }
-    onComplete(email)
-    onBack()
   }
 
   return (
@@ -139,11 +171,12 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
             ) : null}
             <motion.button
               type="submit"
+              disabled={submitting}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
+              className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t('authSend', 'Send')}
+              {submitting ? t('authSending', 'Sending…') : t('authSend', 'Send')}
             </motion.button>
           </motion.form>
         ) : null}
@@ -172,7 +205,7 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                 className={inputClass}
-                placeholder="1234"
+                placeholder={t('authCodePlaceholder', '6-digit code')}
                 required
               />
             </motion.div>
@@ -183,11 +216,12 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
             ) : null}
             <motion.button
               type="submit"
+              disabled={submitting}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
+              className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t('authVerifyCode', 'Verify code')}
+              {submitting ? t('authVerifying', 'Verifying…') : t('authVerifyCode', 'Verify code')}
             </motion.button>
           </motion.form>
         ) : null}
@@ -216,7 +250,6 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
                   onChange={(e) => setPassword(e.target.value)}
                   className={inputClass}
                   required
-                  minLength={PASSWORD_MIN_LENGTH}
                 />
               </motion.div>
               <motion.div variants={staggerItem}>
@@ -231,7 +264,6 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
                   onChange={(e) => setConfirm(e.target.value)}
                   className={inputClass}
                   required
-                  minLength={PASSWORD_MIN_LENGTH}
                 />
               </motion.div>
             </motion.div>
@@ -242,11 +274,12 @@ export default function ResetPasswordForm({ onBack, onComplete }) {
             ) : null}
             <motion.button
               type="submit"
+              disabled={submitting}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700"
+              className="mt-6 w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t('authUpdatePassword', 'Update password')}
+              {submitting ? t('authSaving', 'Saving…') : t('authUpdatePassword', 'Update password')}
             </motion.button>
           </motion.form>
         ) : null}
